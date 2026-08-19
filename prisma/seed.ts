@@ -72,12 +72,12 @@ async function main() {
 
   // ─── Users (replace authUid with real Supabase Auth UIDs) ───
   const usersData = [
-    { id: "user_a_admin", orgId: orgA.id, name: "Alice Admin", email: "admin@opalakuleana.com", role: "ORG_ADMIN" as const, authUid: "AUTH_UID_ORG_A_ADMIN" },
-    { id: "user_a_dispatch", orgId: orgA.id, name: "Dan Dispatch", email: "dispatch@opalakuleana.com", role: "DISPATCHER" as const, authUid: "AUTH_UID_ORG_A_DISPATCHER" },
-    { id: "user_a_lead", orgId: orgA.id, name: "Leo Leadman", email: "lead@opalakuleana.com", role: "LEADMAN" as const, authUid: "AUTH_UID_ORG_A_LEADMAN" },
-    { id: "user_b_admin", orgId: orgB.id, name: "Bob Admin", email: "admin@islandhaulers.com", role: "ORG_ADMIN" as const, authUid: "AUTH_UID_ORG_B_ADMIN" },
-    { id: "user_b_dispatch", orgId: orgB.id, name: "Dana Dispatch", email: "dispatch@islandhaulers.com", role: "DISPATCHER" as const, authUid: "AUTH_UID_ORG_B_DISPATCHER" },
-    { id: "user_b_lead", orgId: orgB.id, name: "Luke Leadman", email: "lead@islandhaulers.com", role: "LEADMAN" as const, authUid: "AUTH_UID_ORG_B_LEADMAN" },
+    { id: "user_a_admin", orgId: orgA.id, name: "Alice Admin", email: "admin@opalakuleana.com", role: "ORG_ADMIN" as const, authUid: "35ec0c87-3cb2-4f69-a91c-d035f8968d20" },
+    { id: "user_a_dispatch", orgId: orgA.id, name: "Dan Dispatch", email: "dispatch@opalakuleana.com", role: "DISPATCHER" as const, authUid: "c2f86174-3005-4a39-816f-5073d8313d76" },
+    { id: "user_a_lead", orgId: orgA.id, name: "Leo Leadman", email: "lead@opalakuleana.com", role: "LEADMAN" as const, authUid: "3863f445-b3d7-4044-bdbc-af61ef26f99d" },
+    { id: "user_b_admin", orgId: orgB.id, name: "Bob Admin", email: "admin@islandhaulers.com", role: "ORG_ADMIN" as const, authUid: "ea60efb2-c2ef-4d56-b52e-b004c74490a4" },
+    { id: "user_b_dispatch", orgId: orgB.id, name: "Dana Dispatch", email: "dispatch@islandhaulers.com", role: "DISPATCHER" as const, authUid: "2e440a99-7065-4bd4-bab0-ae40db5ee576" },
+    { id: "user_b_lead", orgId: orgB.id, name: "Luke Leadman", email: "lead@islandhaulers.com", role: "LEADMAN" as const, authUid: "ece8c52d-c434-4191-9be0-bf1b976eb91a" },
   ];
 
   for (const u of usersData) {
