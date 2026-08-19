@@ -1,0 +1,468 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Platform-level tables (no orgId) ───
+
+enum OrgStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELED
+}
+
+model Organization {
+  id                      String    @id @default(cuid())
+  name                    String
+  slug                    String    @unique
+  logoKey                 String?
+  timezone                String    @default("Pacific/Honolulu")
+  receiptsEmail           String?
+  status                  OrgStatus @default(TRIALING)
+  stripeConnectAccountId  String?
+  stripeCustomerId        String?
+  taxRateBps              Int       @default(0) // basis points (e.g. 450 = 4.50%)
+  trialEndsAt             DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  users         User[]
+  subscription  Subscription?
+  customers     Customer[]
+  addresses     Address[]
+  jobs          Job[]
+  photos        Photo[]
+  priceBooks    PriceBook[]
+  priceItems    PriceItem[]
+  quotes        Quote[]
+  quoteLines    QuoteLine[]
+  payments      Payment[]
+  emailLogs     EmailLog[]
+  trucks        Truck[]
+  dumpSites     DumpSite[]
+  dumpRuns      DumpRun[]
+  auditLogs     AuditLog[]
+}
+
+model Plan {
+  id                 String   @id @default(cuid())
+  name               String
+  priceCentsMonthly  Int
+  maxUsers           Int?
+  maxJobsPerMonth    Int?
+  features           Json     @default("{}")
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  orgId                String   @unique
+  planId               String
+  stripeSubscriptionId String?
+  status               String   @default("trialing")
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  plan         Plan         @relation(fields: [planId], references: [id])
+
+  @@index([orgId])
+}
+
+enum OrgRole {
+  LEADMAN
+  DISPATCHER
+  ORG_ADMIN
+}
+
+model User {
+  id        String   @id @default(cuid())
+  orgId     String
+  authUid   String   @unique // Supabase Auth uid
+  name      String
+  email     String   @unique
+  phone     String?
+  role      OrgRole
+  active    Boolean  @default(true)
+  invitedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  assignedJobs  Job[]        @relation("AssignedTo")
+  createdJobs   Job[]        @relation("CreatedBy")
+  photosTaken   Photo[]
+  paymentsRecv  Payment[]
+
+  @@index([orgId])
+  @@index([authUid])
+}
+
+enum PlatformRole {
+  PLATFORM_ADMIN
+}
+
+model PlatformUser {
+  id        String       @id @default(cuid())
+  authUid   String       @unique
+  name      String
+  email     String       @unique
+  role      PlatformRole @default(PLATFORM_ADMIN)
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model FeatureFlag {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Boolean  @default(false)
+  meta      Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Tenant-owned tables (all carry orgId) ───
+
+model Customer {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  phone     String?
+  email     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  addresses    Address[]
+  jobs         Job[]
+
+  @@index([orgId])
+}
+
+model Address {
+  id         String  @id @default(cuid())
+  orgId      String
+  customerId String
+  line1      String
+  line2      String?
+  city       String
+  state      String
+  zip        String
+  lat        Float?
+  lng        Float?
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  jobs         Job[]
+
+  @@index([orgId])
+}
+
+enum JobStatus {
+  NEW
+  SCHEDULED
+  EN_ROUTE
+  ON_SITE
+  QUOTED
+  ACCEPTED
+  DECLINED
+  IN_PROGRESS
+  COMPLETED
+  PAID
+  CANCELED
+}
+
+enum JobSource {
+  PHONE
+  REFERRAL
+  REPEAT
+  OTHER
+}
+
+model Job {
+  id              String    @id @default(cuid())
+  orgId           String
+  jobNumber       Int
+  customerId      String
+  addressId       String?
+  status          JobStatus @default(NEW)
+  scheduledDate   DateTime?
+  timeWindowStart DateTime?
+  timeWindowEnd   DateTime?
+  assignedToId    String?
+  truckId         String?
+  notes           String?
+  source          JobSource @default(PHONE)
+  createdById     String
+  enRouteAt       DateTime?
+  onSiteAt        DateTime?
+  completedAt     DateTime?
+  canceledAt      DateTime?
+  cancelReason    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id])
+  address      Address?     @relation(fields: [addressId], references: [id])
+  assignedTo   User?        @relation("AssignedTo", fields: [assignedToId], references: [id])
+  createdBy    User         @relation("CreatedBy", fields: [createdById], references: [id])
+  truck        Truck?       @relation(fields: [truckId], references: [id])
+  photos       Photo[]
+  quotes       Quote[]
+  payments     Payment[]
+  dumpRunJobs  DumpRunJob[]
+
+  @@unique([orgId, jobNumber])
+  @@index([orgId])
+  @@index([orgId, status])
+  @@index([orgId, scheduledDate])
+}
+
+enum PhotoType {
+  BEFORE
+  AFTER
+}
+
+model Photo {
+  id         String    @id @default(cuid())
+  orgId      String
+  jobId      String
+  type       PhotoType
+  storageKey String
+  takenById  String
+  takenAt    DateTime  @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  job          Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  takenBy      User         @relation(fields: [takenById], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, jobId])
+}
+
+model PriceBook {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  priceItems   PriceItem[]
+
+  @@index([orgId])
+}
+
+enum PriceItemKind {
+  LOAD_FRACTION
+  ADDON
+  FEE
+}
+
+model PriceItem {
+  id          String        @id @default(cuid())
+  orgId       String
+  priceBookId String
+  kind        PriceItemKind
+  label       String
+  fraction    Float?
+  amountCents Int
+  sortOrder   Int           @default(0)
+  active      Boolean       @default(true)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  priceBook    PriceBook    @relation(fields: [priceBookId], references: [id], onDelete: Cascade)
+  quoteLines   QuoteLine[]
+
+  @@index([orgId])
+}
+
+enum QuoteStatus {
+  DRAFT
+  PRESENTED
+  ACCEPTED
+  DECLINED
+}
+
+model Quote {
+  id              String      @id @default(cuid())
+  orgId           String
+  jobId           String
+  status          QuoteStatus @default(DRAFT)
+  subtotalCents   Int         @default(0)
+  discountCents   Int         @default(0)
+  discountReason  String?
+  taxCents        Int         @default(0)
+  totalCents      Int         @default(0)
+  acceptedAt      DateTime?
+  declinedReason  String?
+  signatureKey    String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  job          Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  lines        QuoteLine[]
+  payments     Payment[]
+
+  @@index([orgId])
+  @@index([orgId, jobId])
+}
+
+model QuoteLine {
+  id          String  @id @default(cuid())
+  orgId       String
+  quoteId     String
+  priceItemId String?
+  label       String
+  qty         Int     @default(1)
+  unitCents   Int
+  totalCents  Int
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  quote        Quote        @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  priceItem    PriceItem?   @relation(fields: [priceItemId], references: [id])
+
+  @@index([orgId])
+}
+
+enum PaymentMethod {
+  CARD
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id                     String        @id @default(cuid())
+  orgId                  String
+  jobId                  String
+  quoteId                String?
+  method                 PaymentMethod
+  status                 PaymentStatus @default(PENDING)
+  amountCents            Int
+  applicationFeeCents    Int?
+  stripeSessionId        String?
+  stripePaymentIntentId  String?
+  receivedById           String
+  paidAt                 DateTime?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  job          Job          @relation(fields: [jobId], references: [id])
+  quote        Quote?       @relation(fields: [quoteId], references: [id])
+  receivedBy   User         @relation(fields: [receivedById], references: [id])
+
+  @@index([orgId])
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  orgId     String?
+  jobId     String?
+  to        String
+  template  String
+  status    String
+  sentAt    DateTime @default(now())
+
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+}
+
+model Truck {
+  id                 String  @id @default(cuid())
+  orgId              String
+  name               String
+  capacityCubicYards Float?
+  active             Boolean @default(true)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  jobs         Job[]
+  dumpRuns     DumpRun[]
+
+  @@index([orgId])
+}
+
+model DumpSite {
+  id                String  @id @default(cuid())
+  orgId             String
+  name              String
+  address           String?
+  hours             String?
+  acceptedMaterials String?
+  feeNotes          String?
+  active            Boolean @default(true)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  dumpRuns     DumpRun[]
+
+  @@index([orgId])
+}
+
+model DumpRun {
+  id         String   @id @default(cuid())
+  orgId      String
+  truckId    String
+  dumpSiteId String
+  runAt      DateTime
+  weightLbs  Float?
+  feeCents   Int?
+  notes      String?
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  truck        Truck        @relation(fields: [truckId], references: [id])
+  dumpSite     DumpSite     @relation(fields: [dumpSiteId], references: [id])
+  dumpRunJobs  DumpRunJob[]
+
+  @@index([orgId])
+}
+
+model DumpRunJob {
+  dumpRunId String
+  jobId     String
+
+  dumpRun DumpRun @relation(fields: [dumpRunId], references: [id], onDelete: Cascade)
+  job     Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@id([dumpRunId, jobId])
+}
+
+model AuditLog {
+  id                   String   @id @default(cuid())
+  orgId                String?
+  actorUserId          String?
+  actorPlatformUserId  String?
+  action               String
+  entity               String
+  entityId             String
+  meta                 Json     @default("{}")
+  createdAt            DateTime @default(now())
+
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([orgId, entity])
+  @@index([createdAt])
+}
