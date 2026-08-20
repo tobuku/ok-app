@@ -233,7 +233,7 @@ export function QuoteBuilder({
         <div className="border-t border-gray-100 pt-3 space-y-1 text-sm">
           <div className="flex justify-between">
             <span className="text-gray-500">Subtotal</span>
-            <span>{formatCents(subtotalCents)}</span>
+            <span className="text-gray-900">{formatCents(subtotalCents)}</span>
           </div>
           {discountCents > 0 && (
             <div className="flex justify-between text-red-600">
@@ -242,12 +242,12 @@ export function QuoteBuilder({
             </div>
           )}
           {taxCents > 0 && (
-            <div className="flex justify-between text-gray-500">
-              <span>Tax ({(taxRateBps / 100).toFixed(2)}%)</span>
-              <span>{formatCents(taxCents)}</span>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Tax ({(taxRateBps / 100).toFixed(2)}%)</span>
+              <span className="text-gray-900">{formatCents(taxCents)}</span>
             </div>
           )}
-          <div className="flex justify-between font-bold text-base pt-1 border-t border-gray-100">
+          <div className="flex justify-between font-bold text-base text-gray-900 pt-1 border-t border-gray-100">
             <span>Total</span>
             <span>{formatCents(totalCents)}</span>
           </div>

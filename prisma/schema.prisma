@@ -309,6 +309,7 @@ model Quote {
   discountReason  String?
   taxCents        Int         @default(0)
   totalCents      Int         @default(0)
+  customerEmail   String?
   acceptedAt      DateTime?
   declinedReason  String?
   signatureKey    String?

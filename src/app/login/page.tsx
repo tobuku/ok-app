@@ -14,20 +14,25 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const supabase = createSupabaseBrowserClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (authError) {
-      setError(authError.message);
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
+
+      // Redirect based on user type — for now just go to /app
+      window.location.href = "/app";
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed");
       setLoading(false);
-      return;
     }
-
-    // Redirect based on user type — for now just go to /app
-    window.location.href = "/app";
   }
 
   return (

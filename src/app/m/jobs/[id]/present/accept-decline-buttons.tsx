@@ -14,6 +14,7 @@ export function AcceptDeclineButtons({
   const [acting, setActing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<"accepted" | "declined" | null>(null);
+  const [customerEmail, setCustomerEmail] = useState("");
 
   async function handleAction(action: "accept" | "decline") {
     if (action === "decline") {
@@ -25,10 +26,15 @@ export function AcceptDeclineButtons({
     setError(null);
 
     try {
+      const body: Record<string, string> = {};
+      if (action === "accept" && customerEmail.trim()) {
+        body.customerEmail = customerEmail.trim();
+      }
+
       const res = await fetch(`/api/org/quotes/${quoteId}/${action}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -64,6 +70,20 @@ export function AcceptDeclineButtons({
 
   return (
     <div className="space-y-3 pt-2">
+      {/* Customer email for receipt */}
+      <div>
+        <label className="block text-xs font-medium text-gray-500 mb-1">
+          Customer Email (for receipt)
+        </label>
+        <input
+          type="email"
+          value={customerEmail}
+          onChange={(e) => setCustomerEmail(e.target.value)}
+          placeholder="customer@example.com"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
+        />
+      </div>
+
       {error && <p className="text-red-600 text-xs text-center">{error}</p>}
       <button
         type="button"

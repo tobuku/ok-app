@@ -39,7 +39,7 @@ async function main() {
       timezone: "Pacific/Honolulu",
       receiptsEmail: "receipts@opalakuleana.com",
       status: "ACTIVE",
-      taxRateBps: 450, // Hawaii GET 4.5%
+      taxRateBps: 471, // Hawaii GET 4.712%
     },
   });
 
@@ -54,7 +54,7 @@ async function main() {
       timezone: "Pacific/Honolulu",
       receiptsEmail: "receipts@islandhaulers.com",
       status: "ACTIVE",
-      taxRateBps: 450,
+      taxRateBps: 471,
     },
   });
 
@@ -109,15 +109,15 @@ async function main() {
     });
 
     const loadFractions = [
-      { label: "Minimum Load", fraction: 0.0, amountCents: 7500, sortOrder: 0 },
-      { label: "1/8 Truck Load", fraction: 0.125, amountCents: 12500, sortOrder: 1 },
-      { label: "1/4 Truck Load", fraction: 0.25, amountCents: 20000, sortOrder: 2 },
-      { label: "3/8 Truck Load", fraction: 0.375, amountCents: 27500, sortOrder: 3 },
-      { label: "1/2 Truck Load", fraction: 0.5, amountCents: 35000, sortOrder: 4 },
-      { label: "5/8 Truck Load", fraction: 0.625, amountCents: 42500, sortOrder: 5 },
-      { label: "3/4 Truck Load", fraction: 0.75, amountCents: 50000, sortOrder: 6 },
-      { label: "7/8 Truck Load", fraction: 0.875, amountCents: 57500, sortOrder: 7 },
-      { label: "Full Truck Load", fraction: 1.0, amountCents: 65000, sortOrder: 8 },
+      { label: "Minimum Load", fraction: 0.0, amountCents: 12500, sortOrder: 0 },
+      { label: "1/8 Truck Load", fraction: 0.125, amountCents: 23438, sortOrder: 1 },
+      { label: "1/4 Truck Load", fraction: 0.25, amountCents: 34375, sortOrder: 2 },
+      { label: "3/8 Truck Load", fraction: 0.375, amountCents: 45313, sortOrder: 3 },
+      { label: "1/2 Truck Load", fraction: 0.5, amountCents: 56250, sortOrder: 4 },
+      { label: "5/8 Truck Load", fraction: 0.625, amountCents: 67188, sortOrder: 5 },
+      { label: "3/4 Truck Load", fraction: 0.75, amountCents: 78125, sortOrder: 6 },
+      { label: "7/8 Truck Load", fraction: 0.875, amountCents: 89063, sortOrder: 7 },
+      { label: "Full Truck Load", fraction: 1.0, amountCents: 100000, sortOrder: 8 },
     ];
 
     const addons = [

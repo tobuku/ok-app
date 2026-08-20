@@ -10,10 +10,12 @@ import { assertTransition } from "@/lib/status";
 import type { JobStatus } from "@prisma/client";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: quoteId } = await params;
+  const body = await request.json().catch(() => ({}));
+  const customerEmail = typeof body.customerEmail === "string" ? body.customerEmail.trim() : null;
   const userOrRes = await requireOrgUser(["LEADMAN", "ORG_ADMIN"], true);
   if (userOrRes instanceof Response) return userOrRes;
   const user = userOrRes;
@@ -50,7 +52,11 @@ export async function POST(
   await prisma.$transaction(async (tx) => {
     await tx.quote.update({
       where: { id: quoteId },
-      data: { status: "ACCEPTED", acceptedAt: new Date() },
+      data: {
+        status: "ACCEPTED",
+        acceptedAt: new Date(),
+        ...(customerEmail ? { customerEmail } : {}),
+      },
     });
     await tx.job.update({
       where: { id: quote.jobId },

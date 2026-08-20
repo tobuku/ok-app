@@ -111,7 +111,7 @@ export default async function PresentQuotePage({
                   {line.label}
                   {line.qty > 1 && ` x${line.qty}`}
                 </span>
-                <span className="font-medium">{formatCents(line.totalCents)}</span>
+                <span className="font-medium text-gray-900">{formatCents(line.totalCents)}</span>
               </div>
             ))}
           </div>
@@ -119,7 +119,7 @@ export default async function PresentQuotePage({
           <div className="border-t border-gray-100 pt-3 space-y-1">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Subtotal</span>
-              <span>{formatCents(quote.subtotalCents)}</span>
+              <span className="text-gray-900">{formatCents(quote.subtotalCents)}</span>
             </div>
             {quote.discountCents > 0 && (
               <div className="flex justify-between text-sm text-red-600">
@@ -135,12 +135,12 @@ export default async function PresentQuotePage({
               </div>
             )}
             {quote.taxCents > 0 && (
-              <div className="flex justify-between text-sm text-gray-500">
-                <span>Tax</span>
-                <span>{formatCents(quote.taxCents)}</span>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Tax</span>
+                <span className="text-gray-900">{formatCents(quote.taxCents)}</span>
               </div>
             )}
-            <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-100">
+            <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-100">
               <span>Total</span>
               <span>{formatCents(quote.totalCents)}</span>
             </div>
