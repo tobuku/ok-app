@@ -2,8 +2,9 @@ import { resolveAuth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { tenantScope } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatCents } from "@/lib/format";
 import { canTransition } from "@/lib/status";
+import { getSignedUrls } from "@/lib/storage";
 import Link from "next/link";
 import type { JobStatus } from "@prisma/client";
 import { JobStatusButton } from "./status-button";
@@ -87,6 +88,40 @@ export default async function JobDetailPage({
   });
 
   const leadmen = orgUsers.filter((u) => u.role === "LEADMAN");
+
+  // Fetch photos for this job
+  const photos = await t.findMany<{
+    id: string;
+    type: string;
+    storageKey: string;
+  }>("photo", {
+    where: { jobId: job.id },
+    orderBy: { takenAt: "asc" },
+  });
+  const photoUrls = await getSignedUrls(photos.map((p) => p.storageKey));
+  const beforePhotos = photos.filter((p) => p.type === "BEFORE");
+  const afterPhotos = photos.filter((p) => p.type === "AFTER");
+
+  // Fetch latest quote
+  const quotes = await t.findMany<{
+    id: string;
+    status: string;
+    totalCents: number;
+  }>("quote", {
+    where: { jobId: job.id },
+    orderBy: { createdAt: "desc" },
+    take: 1,
+  });
+  const latestQuote = quotes[0] ?? null;
+
+  const quoteLines = latestQuote
+    ? await t.findMany<{
+        id: string;
+        label: string;
+        qty: number;
+        totalCents: number;
+      }>("quoteLine", { where: { quoteId: latestQuote.id } })
+    : [];
 
   return (
     <div className="max-w-3xl">
@@ -175,6 +210,58 @@ export default async function JobDetailPage({
           <section className="mb-6">
             <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Notes</h2>
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{job.notes}</p>
+          </section>
+        )}
+
+        {/* Photos */}
+        {photos.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Photos</h2>
+            {beforePhotos.length > 0 && (
+              <div className="mb-2">
+                <p className="text-xs text-gray-400 mb-1">Before ({beforePhotos.length})</p>
+                <div className="flex gap-2 flex-wrap">
+                  {beforePhotos.map((p) => (
+                    <a key={p.id} href={photoUrls[p.storageKey] ?? "#"} target="_blank" rel="noopener noreferrer">
+                      <img src={photoUrls[p.storageKey] ?? ""} alt="Before" className="w-24 h-24 object-cover rounded border border-gray-200" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+            {afterPhotos.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-400 mb-1">After ({afterPhotos.length})</p>
+                <div className="flex gap-2 flex-wrap">
+                  {afterPhotos.map((p) => (
+                    <a key={p.id} href={photoUrls[p.storageKey] ?? "#"} target="_blank" rel="noopener noreferrer">
+                      <img src={photoUrls[p.storageKey] ?? ""} alt="After" className="w-24 h-24 object-cover rounded border border-gray-200" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Quote */}
+        {latestQuote && (
+          <section className="mb-6">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">
+              Quote — {latestQuote.status}
+            </h2>
+            <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-1">
+              {quoteLines.map((line) => (
+                <div key={line.id} className="flex justify-between">
+                  <span>{line.label}{line.qty > 1 ? ` x${line.qty}` : ""}</span>
+                  <span>{formatCents(line.totalCents)}</span>
+                </div>
+              ))}
+              <div className="border-t border-gray-200 pt-1 mt-2 font-medium flex justify-between">
+                <span>Total</span>
+                <span>{formatCents(latestQuote.totalCents)}</span>
+              </div>
+            </div>
           </section>
         )}
 

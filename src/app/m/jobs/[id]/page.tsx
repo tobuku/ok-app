@@ -1,10 +1,14 @@
 import { resolveAuth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { tenantScope } from "@/lib/tenant";
+import { prisma } from "@/lib/prisma";
 import { canTransition } from "@/lib/status";
 import Link from "next/link";
 import type { JobStatus } from "@prisma/client";
 import { MobileStatusButton } from "./mobile-status-button";
+import { PhotoCapture } from "./photo-capture";
+import { PhotoGallery } from "./photo-gallery";
+import { QuoteBuilder } from "./quote-builder";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +43,12 @@ export default async function MobileJobDetailPage({
   const { user } = result;
 
   const t = tenantScope({ orgId: user.orgId, actorUserId: user.id });
+
+  // Get org tax rate for quote builder
+  const org = await prisma.organization.findUnique({
+    where: { id: user.orgId },
+    select: { taxRateBps: true },
+  });
 
   const where: Record<string, unknown> = { id };
   if (user.role === "LEADMAN") where.assignedToId = user.id;
@@ -133,6 +143,32 @@ export default async function MobileJobDetailPage({
           {job.enRouteAt && <p>En route: {new Date(job.enRouteAt).toLocaleTimeString()}</p>}
           {job.onSiteAt && <p>On site: {new Date(job.onSiteAt).toLocaleTimeString()}</p>}
           {job.completedAt && <p>Completed: {new Date(job.completedAt).toLocaleTimeString()}</p>}
+        </div>
+
+        {/* Photos */}
+        <div className="mt-4">
+          <PhotoGallery jobId={job.id} />
+        </div>
+
+        {/* Photo capture — show when ON_SITE or later (before PAID) */}
+        {["ON_SITE", "QUOTED", "ACCEPTED", "DECLINED", "IN_PROGRESS", "COMPLETED"].includes(job.status) && (
+          <div className="mt-4 space-y-2">
+            {["ON_SITE", "QUOTED", "ACCEPTED", "DECLINED"].includes(job.status) && (
+              <PhotoCapture jobId={job.id} type="before" />
+            )}
+            {["IN_PROGRESS", "COMPLETED"].includes(job.status) && (
+              <PhotoCapture jobId={job.id} type="after" />
+            )}
+          </div>
+        )}
+
+        {/* Quote builder — show when ON_SITE, QUOTED, or DECLINED */}
+        <div className="mt-4">
+          <QuoteBuilder
+            jobId={job.id}
+            jobStatus={job.status}
+            taxRateBps={org?.taxRateBps ?? 0}
+          />
         </div>
 
         {/* Action buttons */}

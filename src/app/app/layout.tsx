@@ -42,6 +42,14 @@ export default async function AppLayout({
                   </Link>
                 </>
               )}
+              {user.role === "ORG_ADMIN" && (
+                <Link
+                  href="/app/pricebook"
+                  className="text-sm text-gray-600 hover:text-gray-900"
+                >
+                  Price Book
+                </Link>
+              )}
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-500">
