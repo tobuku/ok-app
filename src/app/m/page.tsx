@@ -41,9 +41,13 @@ export default async function TodayPage() {
   const { user } = result;
 
   const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
-  const start = new Date(todayStr + "T00:00:00");
-  const end = new Date(todayStr + "T23:59:59.999");
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, "0");
+  const d = String(today.getDate()).padStart(2, "0");
+  const todayStr = `${y}-${m}-${d}`;
+  // Use UTC bounds so dates stored as UTC midnight match correctly
+  const start = new Date(todayStr + "T00:00:00Z");
+  const end = new Date(todayStr + "T23:59:59.999Z");
 
   const t = tenantScope({ orgId: user.orgId, actorUserId: user.id });
 

@@ -20,7 +20,9 @@ export function JobEditForm({
   const [saving, setSaving] = useState(false);
   const [assignedToId, setAssignedToId] = useState(currentAssignedToId || "");
   const [scheduledDate, setScheduledDate] = useState(
-    currentScheduledDate ? currentScheduledDate.slice(0, 10) : ""
+    currentScheduledDate
+      ? new Date(currentScheduledDate).toISOString().slice(0, 10)
+      : ""
   );
   const [notes, setNotes] = useState(currentNotes || "");
 
