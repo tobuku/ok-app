@@ -9,6 +9,7 @@ import { MobileStatusButton } from "./mobile-status-button";
 import { PhotoCapture } from "./photo-capture";
 import { PhotoGallery } from "./photo-gallery";
 import { QuoteBuilder } from "./quote-builder";
+import { PaymentButtons } from "./payment-buttons";
 
 export const dynamic = "force-dynamic";
 
@@ -44,10 +45,10 @@ export default async function MobileJobDetailPage({
 
   const t = tenantScope({ orgId: user.orgId, actorUserId: user.id });
 
-  // Get org tax rate for quote builder
+  // Get org info for quote builder + payment
   const org = await prisma.organization.findUnique({
     where: { id: user.orgId },
-    select: { taxRateBps: true },
+    select: { taxRateBps: true, stripeConnectAccountId: true },
   });
 
   const where: Record<string, unknown> = { id };
@@ -73,6 +74,16 @@ export default async function MobileJobDetailPage({
   } | null;
 
   if (!job) redirect("/m");
+
+  // Load accepted quote total for payment buttons (COMPLETED status)
+  let acceptedQuoteTotal = 0;
+  if (job.status === "COMPLETED") {
+    const acceptedQuote = await t.findFirst<{ totalCents: number }>("quote", {
+      where: { jobId: id, status: "ACCEPTED" },
+      select: { totalCents: true },
+    });
+    acceptedQuoteTotal = acceptedQuote?.totalCents ?? 0;
+  }
 
   // Primary action = next forward step in the leadman flow
   const nextForward = LEADMAN_FLOW.find((s) => canTransition(job.status, s));
@@ -170,6 +181,25 @@ export default async function MobileJobDetailPage({
             taxRateBps={org?.taxRateBps ?? 0}
           />
         </div>
+
+        {/* Payment — show when COMPLETED */}
+        {job.status === "COMPLETED" && acceptedQuoteTotal > 0 && (
+          <div className="mt-6">
+            <PaymentButtons
+              jobId={job.id}
+              totalCents={acceptedQuoteTotal}
+              stripeConnected={!!org?.stripeConnectAccountId}
+            />
+          </div>
+        )}
+
+        {/* Paid confirmation */}
+        {job.status === "PAID" && (
+          <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+            <p className="text-green-800 font-medium text-lg">Paid</p>
+            <p className="text-green-600 text-sm mt-1">Job complete</p>
+          </div>
+        )}
 
         {/* Action buttons */}
         <div className="mt-6 space-y-3">

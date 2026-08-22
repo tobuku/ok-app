@@ -123,6 +123,18 @@ export default async function JobDetailPage({
       }>("quoteLine", { where: { quoteId: latestQuote.id } })
     : [];
 
+  // Fetch payments for this job
+  const payments = await t.findMany<{
+    id: string;
+    method: string;
+    status: string;
+    amountCents: number;
+    paidAt: string | null;
+  }>("payment", {
+    where: { jobId: job.id },
+    orderBy: { createdAt: "desc" },
+  });
+
   return (
     <div className="max-w-3xl">
       <Link href="/app" className="text-sm text-blue-600 hover:underline mb-4 block">
@@ -261,6 +273,30 @@ export default async function JobDetailPage({
                 <span>Total</span>
                 <span>{formatCents(latestQuote.totalCents)}</span>
               </div>
+            </div>
+          </section>
+        )}
+
+        {/* Payment */}
+        {payments.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Payment</h2>
+            <div className="space-y-2">
+              {payments.map((p) => (
+                <div key={p.id} className="bg-gray-50 rounded-lg p-3 text-sm flex justify-between items-center">
+                  <div>
+                    <span className="font-medium">{p.method === "CARD" ? "Card" : "Cash"}</span>
+                    <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
+                      p.status === "SUCCEEDED" ? "bg-green-100 text-green-700" :
+                      p.status === "PENDING" ? "bg-yellow-100 text-yellow-700" :
+                      p.status === "FAILED" ? "bg-red-100 text-red-700" :
+                      "bg-gray-100 text-gray-700"
+                    }`}>{p.status}</span>
+                    {p.paidAt && <span className="text-xs text-gray-400 ml-2">{formatDate(p.paidAt)}</span>}
+                  </div>
+                  <span className="font-medium">{formatCents(p.amountCents)}</span>
+                </div>
+              ))}
             </div>
           </section>
         )}
