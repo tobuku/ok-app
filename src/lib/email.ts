@@ -129,8 +129,10 @@ export async function sendReceipt(data: ReceiptData): Promise<void> {
   const html = buildReceiptHtml(data);
   const subject = `Receipt — ${data.orgName} Job #${data.jobNumber}`;
 
-  // From address uses Resend's default domain; display name = tenant org
-  const from = `${data.orgName} <receipts@${process.env.RESEND_DOMAIN || "resend.dev"}>`;
+  // From address: use RESEND_FROM override (required for sandbox: onboarding@resend.dev)
+  // Once you have a verified domain, set RESEND_DOMAIN and remove RESEND_FROM
+  const fromAddress = process.env.RESEND_FROM || `receipts@${process.env.RESEND_DOMAIN || "resend.dev"}`;
+  const from = `${data.orgName} <${fromAddress}>`;
 
   const recipients: string[] = [data.customerEmail];
   if (data.receiptsEmail && data.receiptsEmail !== data.customerEmail) {
