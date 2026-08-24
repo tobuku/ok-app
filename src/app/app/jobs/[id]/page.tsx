@@ -168,13 +168,13 @@ export default async function JobDetailPage({
         )}
 
         {/* Customer info */}
-        <section className="mb-6">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Customer</h2>
-          <p className="font-medium">{job.customer.name}</p>
-          {job.customer.phone && <p className="text-sm text-gray-600">{job.customer.phone}</p>}
-          {job.customer.email && <p className="text-sm text-gray-600">{job.customer.email}</p>}
+        <section className="mb-4">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">Customer</h2>
+          <p className="font-medium text-gray-900">{job.customer.name}</p>
+          {job.customer.phone && <p className="text-sm text-gray-700">{job.customer.phone}</p>}
+          {job.customer.email && <p className="text-sm text-gray-700">{job.customer.email}</p>}
           {job.address && (
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-700 mt-1">
               {job.address.line1}
               {job.address.line2 ? `, ${job.address.line2}` : ""},{" "}
               {job.address.city}, {job.address.state} {job.address.zip}
@@ -183,30 +183,30 @@ export default async function JobDetailPage({
         </section>
 
         {/* Schedule & assignment */}
-        <section className="mb-6 grid grid-cols-2 gap-4">
+        <section className="mb-4 grid grid-cols-2 gap-2">
           <div>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">Scheduled</h2>
-            <p className="text-sm">{job.scheduledDate ? formatDate(job.scheduledDate) : "Not scheduled"}</p>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-0.5">Scheduled</h2>
+            <p className="text-sm text-gray-900">{job.scheduledDate ? formatDate(job.scheduledDate) : "Not scheduled"}</p>
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">Assigned To</h2>
-            <p className="text-sm">{job.assignedTo?.name ?? "Unassigned"}</p>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-0.5">Assigned To</h2>
+            <p className="text-sm text-gray-900">{job.assignedTo?.name ?? "Unassigned"}</p>
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">Source</h2>
-            <p className="text-sm">{job.source}</p>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-0.5">Source</h2>
+            <p className="text-sm text-gray-900">{job.source}</p>
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">Created By</h2>
-            <p className="text-sm">{job.createdBy.name}</p>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-0.5">Created By</h2>
+            <p className="text-sm text-gray-900">{job.createdBy.name}</p>
           </div>
         </section>
 
         {/* Timestamps */}
         {(job.enRouteAt || job.onSiteAt || job.completedAt || job.canceledAt) && (
-          <section className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Timeline</h2>
-            <div className="text-sm space-y-1">
+          <section className="mb-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">Timeline</h2>
+            <div className="text-sm text-gray-900 space-y-0.5">
               {job.enRouteAt && <p>En Route: {formatDate(job.enRouteAt)}</p>}
               {job.onSiteAt && <p>On Site: {formatDate(job.onSiteAt)}</p>}
               {job.completedAt && <p>Completed: {formatDate(job.completedAt)}</p>}
@@ -219,19 +219,19 @@ export default async function JobDetailPage({
 
         {/* Notes */}
         {job.notes && (
-          <section className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Notes</h2>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">{job.notes}</p>
+          <section className="mb-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">Notes</h2>
+            <p className="text-sm text-gray-900 whitespace-pre-wrap">{job.notes}</p>
           </section>
         )}
 
         {/* Photos */}
         {photos.length > 0 && (
-          <section className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Photos</h2>
+          <section className="mb-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">Photos</h2>
             {beforePhotos.length > 0 && (
               <div className="mb-2">
-                <p className="text-xs text-gray-400 mb-1">Before ({beforePhotos.length})</p>
+                <p className="text-xs text-gray-600 mb-1">Before ({beforePhotos.length})</p>
                 <div className="flex gap-2 flex-wrap">
                   {beforePhotos.map((p) => (
                     <a key={p.id} href={photoUrls[p.storageKey] ?? "#"} target="_blank" rel="noopener noreferrer">
@@ -243,7 +243,7 @@ export default async function JobDetailPage({
             )}
             {afterPhotos.length > 0 && (
               <div>
-                <p className="text-xs text-gray-400 mb-1">After ({afterPhotos.length})</p>
+                <p className="text-xs text-gray-600 mb-1">After ({afterPhotos.length})</p>
                 <div className="flex gap-2 flex-wrap">
                   {afterPhotos.map((p) => (
                     <a key={p.id} href={photoUrls[p.storageKey] ?? "#"} target="_blank" rel="noopener noreferrer">
@@ -258,20 +258,20 @@ export default async function JobDetailPage({
 
         {/* Quote */}
         {latestQuote && (
-          <section className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">
+          <section className="mb-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">
               Quote — {latestQuote.status}
             </h2>
-            <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-1">
+            <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-900 space-y-1">
               {quoteLines.map((line) => (
                 <div key={line.id} className="flex justify-between">
                   <span>{line.label}{line.qty > 1 ? ` x${line.qty}` : ""}</span>
-                  <span>{formatCents(line.totalCents)}</span>
+                  <span className="text-gray-900">{formatCents(line.totalCents)}</span>
                 </div>
               ))}
-              <div className="border-t border-gray-200 pt-1 mt-2 font-medium flex justify-between">
+              <div className="border-t border-gray-200 pt-1 mt-2 font-medium text-gray-900 flex justify-between">
                 <span>Total</span>
-                <span>{formatCents(latestQuote.totalCents)}</span>
+                <span className="text-gray-900">{formatCents(latestQuote.totalCents)}</span>
               </div>
             </div>
           </section>
@@ -279,8 +279,8 @@ export default async function JobDetailPage({
 
         {/* Payment */}
         {payments.length > 0 && (
-          <section className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Payment</h2>
+          <section className="mb-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">Payment</h2>
             <div className="space-y-2">
               {payments.map((p) => (
                 <div key={p.id} className="bg-gray-50 rounded-lg p-3 text-sm flex justify-between items-center">
@@ -292,7 +292,7 @@ export default async function JobDetailPage({
                       p.status === "FAILED" ? "bg-red-100 text-red-700" :
                       "bg-gray-100 text-gray-700"
                     }`}>{p.status}</span>
-                    {p.paidAt && <span className="text-xs text-gray-400 ml-2">{formatDate(p.paidAt)}</span>}
+                    {p.paidAt && <span className="text-xs text-gray-600 ml-2">{formatDate(p.paidAt)}</span>}
                   </div>
                   <span className="font-medium">{formatCents(p.amountCents)}</span>
                 </div>

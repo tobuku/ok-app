@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrgUser } from "@/lib/auth";
 import { tenantScope } from "@/lib/tenant";
+import { geocode } from "@/lib/geocode";
 
 /** GET /api/org/customers — list customers (Dispatcher, Org Admin) */
 export async function GET() {
@@ -36,6 +37,17 @@ export async function POST(req: NextRequest) {
   if (body.address) {
     const { line1, city, state, zip } = body.address;
     if (line1 && city && state && zip) {
+      // Auto-geocode if lat/lng not provided
+      let lat = body.address.lat || null;
+      let lng = body.address.lng || null;
+      if (!lat || !lng) {
+        const coords = await geocode({ line1, city, state, zip });
+        if (coords) {
+          lat = coords.lat;
+          lng = coords.lng;
+        }
+      }
+
       await t.create("address", {
         data: {
           customerId: (customer as { id: string }).id,
@@ -44,8 +56,8 @@ export async function POST(req: NextRequest) {
           city,
           state,
           zip,
-          lat: body.address.lat || null,
-          lng: body.address.lng || null,
+          lat,
+          lng,
         },
       });
     }
