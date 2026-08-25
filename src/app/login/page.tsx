@@ -27,7 +27,19 @@ export default function LoginPage() {
         return;
       }
 
-      // Redirect based on user type — for now just go to /app
+      // Check user type and redirect accordingly
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.kind === "platform_user") {
+          window.location.href = "/platform";
+          return;
+        }
+        if (data.role === "LEADMAN") {
+          window.location.href = "/m";
+          return;
+        }
+      }
       window.location.href = "/app";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");

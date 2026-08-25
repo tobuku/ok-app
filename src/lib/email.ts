@@ -125,6 +125,61 @@ function buildReceiptHtml(data: ReceiptData): string {
  * Send white-labeled receipt to the customer AND company receiptsEmail.
  * Logs to EmailLog.
  */
+/**
+ * Send an org admin invite email from the platform.
+ * The invite links to /onboarding?token=<invite token>.
+ */
+export async function sendOrgInvite(opts: {
+  to: string;
+  orgName: string;
+  inviteToken: string;
+}): Promise<void> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const inviteUrl = `${appUrl}/onboarding?token=${opts.inviteToken}`;
+
+  const fromAddress = process.env.RESEND_FROM || `noreply@${process.env.RESEND_DOMAIN || "resend.dev"}`;
+  const from = `Platform <${fromAddress}>`;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width" /></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:480px;margin:0 auto;padding:24px;">
+    <div style="background:#ffffff;border-radius:12px;padding:32px 24px;border:1px solid #e5e7eb;">
+      <h1 style="margin:0 0 16px;font-size:22px;color:#111827;">You're invited to set up ${opts.orgName}</h1>
+      <p style="color:#6b7280;font-size:14px;line-height:1.6;margin:0 0 24px;">
+        Your organization has been created on our junk removal platform. Click below to complete setup — you'll configure branding, pricing, invite your team, and connect Stripe.
+      </p>
+      <a href="${inviteUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+        Complete Setup
+      </a>
+      <p style="color:#9ca3af;font-size:12px;margin:24px 0 0;">
+        This invite link is valid for 7 days.
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    await getResend().emails.send({
+      from,
+      to: opts.to,
+      subject: `Set up ${opts.orgName} — You're Invited`,
+      html,
+    });
+
+    await prisma.emailLog.create({
+      data: { to: opts.to, template: "org_invite", status: "sent" },
+    });
+  } catch (err) {
+    console.error(`Failed to send org invite to ${opts.to}:`, err);
+    await prisma.emailLog.create({
+      data: { to: opts.to, template: "org_invite", status: "failed" },
+    });
+  }
+}
+
 export async function sendReceipt(data: ReceiptData): Promise<void> {
   const html = buildReceiptHtml(data);
   const subject = `Receipt — ${data.orgName} Job #${data.jobNumber}`;

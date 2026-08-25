@@ -27,7 +27,7 @@ Read PLAN.md before any work. Follow its tenancy model, data model, API surface,
 - test: npm test   (isolation tests must always pass)
 
 ## Current phase
-Phase 2 complete — Photos & Quotes (Phase 3 next: Payments & White-Label Receipts)
+Phase 4 complete — Dispatch Ops & Org Admin (Phase 5 next: SaaS Billing)
 
 <!-- BEGIN:nextjs-agent-rules -->
 

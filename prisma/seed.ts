@@ -16,15 +16,34 @@ async function main() {
   console.log("Seeding database...");
 
   // ─── Plans ───
-  const starterPlan = await prisma.plan.upsert({
-    where: { id: "plan_starter" },
+  const plansData = [
+    { id: "plan_solo", name: "Solo", priceCentsMonthly: 2500, maxUsers: 3, maxJobsPerMonth: 50 },
+    { id: "plan_crew", name: "Crew", priceCentsMonthly: 4900, maxUsers: 10, maxJobsPerMonth: 200 },
+    { id: "plan_pro", name: "Pro", priceCentsMonthly: 10000, maxUsers: 25, maxJobsPerMonth: null },
+    { id: "plan_enterprise", name: "Enterprise", priceCentsMonthly: 0, maxUsers: null, maxJobsPerMonth: null },
+  ];
+
+  for (const plan of plansData) {
+    await prisma.plan.upsert({
+      where: { id: plan.id },
+      update: { name: plan.name, priceCentsMonthly: plan.priceCentsMonthly, maxUsers: plan.maxUsers, maxJobsPerMonth: plan.maxJobsPerMonth },
+      create: plan,
+    });
+  }
+
+  // Keep reference for subscriptions
+  const starterPlan = { id: "plan_crew" };
+
+  // ─── Platform Admin ───
+  await prisma.platformUser.upsert({
+    where: { id: "platform_admin_1" },
     update: {},
     create: {
-      id: "plan_starter",
-      name: "Starter",
-      priceCentsMonthly: 4900, // $49/mo
-      maxUsers: 5,
-      maxJobsPerMonth: 100,
+      id: "platform_admin_1",
+      authUid: "REPLACE_WITH_PLATFORM_ADMIN_AUTH_UID",
+      name: "Neal (Platform Admin)",
+      email: "admin@platform.local",
+      role: "PLATFORM_ADMIN",
     },
   });
 
