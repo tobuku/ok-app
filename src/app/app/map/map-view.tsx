@@ -36,7 +36,23 @@ const STATUS_COLORS: Record<string, string> = {
   DECLINED: "#ef4444",
 };
 
-function createIcon(color: string) {
+function createIcon(color: string, routeIndex?: number) {
+  if (routeIndex !== undefined) {
+    return L.divIcon({
+      className: "",
+      html: `<div style="
+        width: 28px; height: 28px; border-radius: 50%;
+        background: ${color}; border: 3px solid white;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-size: 11px; font-weight: 700;
+        font-family: system-ui, sans-serif;
+      ">${routeIndex}</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+      popupAnchor: [0, -16],
+    });
+  }
   return L.divIcon({
     className: "",
     html: `<div style="
@@ -50,7 +66,20 @@ function createIcon(color: string) {
   });
 }
 
-export default function MapView({ jobs }: { jobs: MapJob[] }) {
+const userIcon = L.divIcon({
+  className: "",
+  html: `<div style="width:16px;height:16px;border-radius:50%;background:#3b82f6;border:3px solid white;box-shadow:0 0 0 4px rgba(59,130,246,0.3);animation:pulse 2s infinite"></div>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+});
+
+type MapViewProps = {
+  jobs: MapJob[];
+  userLocation?: { lat: number; lng: number } | null;
+  routeOrder?: number[] | null;
+};
+
+export default function MapView({ jobs, userLocation, routeOrder }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
 
@@ -73,17 +102,29 @@ export default function MapView({ jobs }: { jobs: MapJob[] }) {
 
     const map = mapRef.current;
 
-    // Clear existing markers
+    // Clear existing markers and polylines
     map.eachLayer((layer) => {
-      if (layer instanceof L.Marker) map.removeLayer(layer);
+      if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+        map.removeLayer(layer);
+      }
     });
+
+    // Build route index lookup: jobIndex -> display number
+    const routeIndexMap = new Map<number, number>();
+    if (routeOrder && routeOrder.length > 0) {
+      routeOrder.forEach((jobIdx, position) => {
+        routeIndexMap.set(jobIdx, position + 1);
+      });
+    }
 
     // Add job markers
     const markers: L.Marker[] = [];
-    for (const job of jobs) {
+    for (let i = 0; i < jobs.length; i++) {
+      const job = jobs[i];
       const color = STATUS_COLORS[job.status] || "#6b7280";
+      const routeNum = routeIndexMap.get(i);
       const marker = L.marker([job.address.lat, job.address.lng], {
-        icon: createIcon(color),
+        icon: createIcon(color, routeNum),
       });
 
       const dateStr = job.scheduledDate
@@ -95,7 +136,7 @@ export default function MapView({ jobs }: { jobs: MapJob[] }) {
       marker.bindPopup(`
         <div style="min-width:180px; font-family: system-ui, sans-serif;">
           <div style="font-weight:600; font-size:14px; margin-bottom:4px;">
-            #${job.jobNumber} — ${job.customer.name}
+            ${routeNum ? `<span style="background:#3b82f6;color:white;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;margin-right:4px;">${routeNum}</span>` : ""}#${job.jobNumber} — ${job.customer.name}
           </div>
           <div style="font-size:12px; color:#666; margin-bottom:2px;">
             ${job.address.line1}, ${job.address.city}
@@ -115,17 +156,48 @@ export default function MapView({ jobs }: { jobs: MapJob[] }) {
       markers.push(marker);
     }
 
+    // Add user location marker
+    if (userLocation) {
+      const uMarker = L.marker([userLocation.lat, userLocation.lng], {
+        icon: userIcon,
+        zIndexOffset: 1000,
+      });
+      uMarker.bindPopup(`<div style="font-family:system-ui,sans-serif;font-size:13px;font-weight:600;">Your Location</div>`);
+      uMarker.addTo(map);
+      markers.push(uMarker);
+    }
+
+    // Draw route polyline
+    if (routeOrder && routeOrder.length > 0) {
+      const routeCoords: L.LatLngExpression[] = [];
+      // Start from user location if available
+      if (userLocation) {
+        routeCoords.push([userLocation.lat, userLocation.lng]);
+      }
+      for (const idx of routeOrder) {
+        if (jobs[idx]) {
+          routeCoords.push([jobs[idx].address.lat, jobs[idx].address.lng]);
+        }
+      }
+      if (routeCoords.length >= 2) {
+        L.polyline(routeCoords, {
+          color: "#3b82f6",
+          weight: 2,
+          dashArray: "8,8",
+        }).addTo(map);
+      }
+    }
+
     // Fit bounds if there are markers
     if (markers.length > 0) {
       const group = L.featureGroup(markers);
       map.fitBounds(group.getBounds().pad(0.1));
     }
 
-    // Cleanup on unmount
     return () => {
-      // Don't destroy map, just clear markers on re-render
+      // Don't destroy map, just clear layers on re-render
     };
-  }, [jobs]);
+  }, [jobs, userLocation, routeOrder]);
 
   // Cleanup map on unmount
   useEffect(() => {
@@ -137,5 +209,16 @@ export default function MapView({ jobs }: { jobs: MapJob[] }) {
     };
   }, []);
 
-  return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
+  return (
+    <>
+      <style>{`
+        @keyframes pulse {
+          0% { box-shadow: 0 0 0 4px rgba(59,130,246,0.3); }
+          50% { box-shadow: 0 0 0 8px rgba(59,130,246,0.1); }
+          100% { box-shadow: 0 0 0 4px rgba(59,130,246,0.3); }
+        }
+      `}</style>
+      <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+    </>
+  );
 }

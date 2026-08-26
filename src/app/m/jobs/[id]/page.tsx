@@ -5,29 +5,19 @@ import { prisma } from "@/lib/prisma";
 import { canTransition } from "@/lib/status";
 import Link from "next/link";
 import type { JobStatus } from "@prisma/client";
+import { ArrowLeft, Phone, MapPin } from "lucide-react";
 import { MobileStatusButton } from "./mobile-status-button";
 import { PhotoCapture } from "./photo-capture";
 import { PhotoGallery } from "./photo-gallery";
 import { QuoteBuilder } from "./quote-builder";
 import { PaymentButtons } from "./payment-buttons";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatusBadge, getStatusLabel } from "@/components/status-badge";
+import { CheckCircle2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABELS: Record<JobStatus, string> = {
-  NEW: "New",
-  SCHEDULED: "Scheduled",
-  EN_ROUTE: "En Route",
-  ON_SITE: "On Site",
-  QUOTED: "Quoted",
-  ACCEPTED: "Accepted",
-  DECLINED: "Declined",
-  IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed",
-  PAID: "Paid",
-  CANCELED: "Canceled",
-};
-
-// For the leadman flow, these are the main forward transitions
 const LEADMAN_FLOW: JobStatus[] = [
   "EN_ROUTE", "ON_SITE", "IN_PROGRESS", "COMPLETED",
 ];
@@ -45,7 +35,6 @@ export default async function MobileJobDetailPage({
 
   const t = tenantScope({ orgId: user.orgId, actorUserId: user.id });
 
-  // Get org info for quote builder + payment
   const org = await prisma.organization.findUnique({
     where: { id: user.orgId },
     select: { taxRateBps: true, stripeConnectAccountId: true },
@@ -75,7 +64,6 @@ export default async function MobileJobDetailPage({
 
   if (!job) redirect("/m");
 
-  // Load accepted quote total for payment buttons (COMPLETED status)
   let acceptedQuoteTotal = 0;
   if (job.status === "COMPLETED") {
     const acceptedQuote = await t.findFirst<{ totalCents: number }>("quote", {
@@ -85,11 +73,9 @@ export default async function MobileJobDetailPage({
     acceptedQuoteTotal = acceptedQuote?.totalCents ?? 0;
   }
 
-  // Primary action = next forward step in the leadman flow
   const nextForward = LEADMAN_FLOW.find((s) => canTransition(job.status, s));
   const canCancel = canTransition(job.status, "CANCELED");
 
-  // Build address for Maps link
   const addressStr = job.address
     ? `${job.address.line1}, ${job.address.city}, ${job.address.state} ${job.address.zip}`
     : null;
@@ -99,128 +85,134 @@ export default async function MobileJobDetailPage({
 
   return (
     <div>
-      <Link href="/m" className="text-sm text-blue-600 mb-4 block">
-        Back
-      </Link>
+      <Button variant="ghost" size="sm" asChild className="mb-4">
+        <Link href="/m">
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back
+        </Link>
+      </Button>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-sm font-mono text-gray-400">#{job.jobNumber}</span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 font-medium">
-            {STATUS_LABELS[job.status]}
-          </span>
-        </div>
+      <Card>
+        <CardContent className="pt-5 space-y-4">
+          {/* Header */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-mono text-muted-foreground">#{job.jobNumber}</span>
+            <StatusBadge status={job.status} />
+          </div>
 
-        {/* Customer */}
-        <h1 className="text-xl font-bold mt-2">{job.customer.name}</h1>
-        {job.customer.phone && (
-          <a href={`tel:${job.customer.phone}`} className="text-blue-600 text-sm block mt-1">
-            {job.customer.phone}
-          </a>
-        )}
-
-        {/* Address with Maps link */}
-        {job.address && (
-          <div className="mt-3">
-            {mapsUrl ? (
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 text-sm underline"
-              >
-                {job.address.line1}
-                {job.address.line2 ? `, ${job.address.line2}` : ""},{" "}
-                {job.address.city}, {job.address.state} {job.address.zip}
+          {/* Customer */}
+          <div>
+            <h1 className="text-xl font-bold">{job.customer.name}</h1>
+            {job.customer.phone && (
+              <a href={`tel:${job.customer.phone}`} className="text-sm text-primary flex items-center gap-1 mt-1">
+                <Phone className="h-3.5 w-3.5" />
+                {job.customer.phone}
               </a>
-            ) : (
-              <p className="text-sm text-gray-600">
-                {job.address.line1}, {job.address.city}, {job.address.state} {job.address.zip}
-              </p>
             )}
           </div>
-        )}
 
-        {/* Notes */}
-        {job.notes && (
-          <div className="mt-4 p-3 bg-gray-50 rounded-md">
-            <p className="text-xs font-medium text-gray-500 uppercase mb-1">Notes</p>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">{job.notes}</p>
-          </div>
-        )}
+          {/* Address */}
+          {job.address && (
+            <div>
+              {mapsUrl ? (
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary underline flex items-center gap-1"
+                >
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  {job.address.line1}
+                  {job.address.line2 ? `, ${job.address.line2}` : ""},{" "}
+                  {job.address.city}, {job.address.state} {job.address.zip}
+                </a>
+              ) : (
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  {job.address.line1}, {job.address.city}, {job.address.state} {job.address.zip}
+                </p>
+              )}
+            </div>
+          )}
 
-        {/* Timestamps */}
-        <div className="mt-4 text-xs text-gray-400 space-y-1">
-          {job.enRouteAt && <p>En route: {new Date(job.enRouteAt).toLocaleTimeString()}</p>}
-          {job.onSiteAt && <p>On site: {new Date(job.onSiteAt).toLocaleTimeString()}</p>}
-          {job.completedAt && <p>Completed: {new Date(job.completedAt).toLocaleTimeString()}</p>}
-        </div>
+          {/* Notes */}
+          {job.notes && (
+            <div className="p-3 bg-muted rounded-md">
+              <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Notes</p>
+              <p className="text-sm whitespace-pre-wrap">{job.notes}</p>
+            </div>
+          )}
 
-        {/* Photos */}
-        <div className="mt-4">
+          {/* Timestamps */}
+          {(job.enRouteAt || job.onSiteAt || job.completedAt) && (
+            <div className="text-xs text-muted-foreground space-y-1">
+              {job.enRouteAt && <p>En route: {new Date(job.enRouteAt).toLocaleTimeString()}</p>}
+              {job.onSiteAt && <p>On site: {new Date(job.onSiteAt).toLocaleTimeString()}</p>}
+              {job.completedAt && <p>Completed: {new Date(job.completedAt).toLocaleTimeString()}</p>}
+            </div>
+          )}
+
+          {/* Photos */}
           <PhotoGallery jobId={job.id} />
-        </div>
 
-        {/* Photo capture — show when ON_SITE or later (before PAID) */}
-        {["ON_SITE", "QUOTED", "ACCEPTED", "DECLINED", "IN_PROGRESS", "COMPLETED"].includes(job.status) && (
-          <div className="mt-4 space-y-2">
-            {["ON_SITE", "QUOTED", "ACCEPTED", "DECLINED"].includes(job.status) && (
-              <PhotoCapture jobId={job.id} type="before" />
-            )}
-            {["IN_PROGRESS", "COMPLETED"].includes(job.status) && (
-              <PhotoCapture jobId={job.id} type="after" />
-            )}
-          </div>
-        )}
+          {/* Photo capture */}
+          {["ON_SITE", "QUOTED", "ACCEPTED", "DECLINED", "IN_PROGRESS", "COMPLETED"].includes(job.status) && (
+            <div className="space-y-2">
+              {["ON_SITE", "QUOTED", "ACCEPTED", "DECLINED"].includes(job.status) && (
+                <PhotoCapture jobId={job.id} type="before" />
+              )}
+              {["IN_PROGRESS", "COMPLETED"].includes(job.status) && (
+                <PhotoCapture jobId={job.id} type="after" />
+              )}
+            </div>
+          )}
 
-        {/* Quote builder — show when ON_SITE, QUOTED, or DECLINED */}
-        <div className="mt-4">
+          {/* Quote builder */}
           <QuoteBuilder
             jobId={job.id}
             jobStatus={job.status}
             taxRateBps={org?.taxRateBps ?? 0}
           />
-        </div>
 
-        {/* Payment — show when COMPLETED */}
-        {job.status === "COMPLETED" && acceptedQuoteTotal > 0 && (
-          <div className="mt-6">
+          {/* Payment */}
+          {job.status === "COMPLETED" && acceptedQuoteTotal > 0 && (
             <PaymentButtons
               jobId={job.id}
               totalCents={acceptedQuoteTotal}
               stripeConnected={!!org?.stripeConnectAccountId}
             />
-          </div>
-        )}
-
-        {/* Paid confirmation */}
-        {job.status === "PAID" && (
-          <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-            <p className="text-green-800 font-medium text-lg">Paid</p>
-            <p className="text-green-600 text-sm mt-1">Job complete</p>
-          </div>
-        )}
-
-        {/* Action buttons */}
-        <div className="mt-6 space-y-3">
-          {nextForward && (
-            <MobileStatusButton
-              jobId={job.id}
-              newStatus={nextForward}
-              label={STATUS_LABELS[nextForward]}
-              primary
-            />
           )}
-          {canCancel && (
-            <MobileStatusButton
-              jobId={job.id}
-              newStatus="CANCELED"
-              label="Cancel Job"
-              primary={false}
-            />
+
+          {/* Paid confirmation */}
+          {job.status === "PAID" && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
+              <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-1" />
+              <p className="text-green-800 dark:text-green-400 font-medium text-lg">Paid</p>
+              <p className="text-green-600 dark:text-green-500 text-sm mt-1">Job complete</p>
+            </div>
           )}
-        </div>
-      </div>
+
+          {/* Action buttons */}
+          <div className="space-y-3 pt-2">
+            {nextForward && (
+              <MobileStatusButton
+                jobId={job.id}
+                newStatus={nextForward}
+                label={getStatusLabel(nextForward)}
+                primary
+              />
+            )}
+            {canCancel && (
+              <MobileStatusButton
+                jobId={job.id}
+                newStatus="CANCELED"
+                label="Cancel Job"
+                primary={false}
+              />
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { showError } from "@/lib/toast";
 
 export function PaymentButtons({
   jobId,
@@ -25,13 +28,13 @@ export function PaymentButtons({
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Failed to create payment link");
+        showError(data.error || "Failed to create payment link");
         setLoading(null);
         return;
       }
       setCardUrl(data.url);
     } catch {
-      alert("Network error");
+      showError("Network error");
       setLoading(null);
     }
   }
@@ -48,13 +51,13 @@ export function PaymentButtons({
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Failed to record payment");
+        showError(data.error || "Failed to record payment");
         setLoading(null);
         return;
       }
       router.refresh();
     } catch {
-      alert("Network error");
+      showError("Network error");
       setLoading(null);
     }
   }
@@ -62,54 +65,59 @@ export function PaymentButtons({
   if (cardUrl) {
     return (
       <div className="space-y-3">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-          <p className="text-blue-800 font-medium mb-2">Payment link ready</p>
-          <a
-            href={cardUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-semibold"
-          >
-            Open Payment Page
-          </a>
-          <p className="text-xs text-blue-600 mt-2">
-            Show this to the customer or share the link
-          </p>
-        </div>
-        <button
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-4 text-center">
+            <p className="text-primary font-medium mb-2">Payment link ready</p>
+            <Button asChild>
+              <a
+                href={cardUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-12"
+              >
+                Open Payment Page
+              </a>
+            </Button>
+            <p className="text-xs text-primary/70 mt-2">
+              Show this to the customer or share the link
+            </p>
+          </CardContent>
+        </Card>
+        <Button
+          variant="link"
           onClick={() => { setCardUrl(null); setLoading(null); }}
-          className="w-full py-2 text-sm text-gray-500 underline"
+          className="w-full text-sm text-muted-foreground"
         >
           Back to payment options
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium text-gray-700">Collect Payment</p>
+      <p className="text-sm font-medium text-foreground">Collect Payment</p>
 
       {stripeConnected && (
-        <button
+        <Button
           onClick={handleCard}
           disabled={loading !== null}
-          className="w-full py-3 rounded-lg text-sm font-semibold bg-blue-600 text-white active:bg-blue-700 disabled:opacity-50"
+          className="w-full h-12 text-sm font-semibold"
         >
           {loading === "card" ? "Creating link..." : "Pay by Card"}
-        </button>
+        </Button>
       )}
 
-      <button
+      <Button
         onClick={handleCash}
         disabled={loading !== null}
-        className="w-full py-3 rounded-lg text-sm font-semibold bg-green-600 text-white active:bg-green-700 disabled:opacity-50"
+        className="w-full h-12 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white"
       >
         {loading === "cash" ? "Recording..." : "Paid Cash"}
-      </button>
+      </Button>
 
       {!stripeConnected && (
-        <p className="text-xs text-gray-400 text-center">
+        <p className="text-xs text-muted-foreground text-center">
           Card payments unavailable — Stripe not connected
         </p>
       )}

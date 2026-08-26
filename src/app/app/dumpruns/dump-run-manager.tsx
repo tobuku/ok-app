@@ -3,6 +3,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatCents } from "@/lib/format";
+import { showSuccess, showError } from "@/lib/toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type DumpRun = {
   id: string;
@@ -32,7 +45,6 @@ export function DumpRunManager({
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
     truckId: trucks[0]?.id || "",
     dumpSiteId: dumpSites[0]?.id || "",
@@ -46,7 +58,6 @@ export function DumpRunManager({
   async function createRun() {
     if (!form.truckId || !form.dumpSiteId) return;
     setSaving(true);
-    setMessage(null);
     try {
       const res = await fetch("/api/org/dumpruns", {
         method: "POST",
@@ -59,7 +70,7 @@ export function DumpRunManager({
       });
       if (!res.ok) {
         const data = await res.json();
-        setMessage(data.error || "Failed");
+        showError(data.error || "Failed");
       } else {
         setShowForm(false);
         setForm({
@@ -71,10 +82,11 @@ export function DumpRunManager({
           notes: "",
           jobIds: [],
         });
+        showSuccess("Dump run logged");
         router.refresh();
       }
     } catch {
-      setMessage("Network error");
+      showError("Network error");
     } finally {
       setSaving(false);
     }
@@ -83,7 +95,12 @@ export function DumpRunManager({
   async function deleteRun(id: string) {
     if (!confirm("Delete this dump run?")) return;
     const res = await fetch(`/api/org/dumpruns/${id}`, { method: "DELETE" });
-    if (res.ok) router.refresh();
+    if (res.ok) {
+      showSuccess("Dump run deleted");
+      router.refresh();
+    } else {
+      showError("Failed to delete dump run");
+    }
   }
 
   function toggleJob(jobId: string) {
@@ -99,178 +116,181 @@ export function DumpRunManager({
     <div className="space-y-4">
       {/* Create form */}
       {!showForm ? (
-        <button
+        <Button
           onClick={() => setShowForm(true)}
           disabled={trucks.length === 0 || dumpSites.length === 0}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:bg-gray-300"
         >
           {trucks.length === 0 || dumpSites.length === 0
             ? "Add trucks & dump sites first"
             : "Log Dump Run"}
-        </button>
+        </Button>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-3">
-          <h2 className="text-sm font-medium text-gray-700">New Dump Run</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Truck *</label>
-              <select
-                value={form.truckId}
-                onChange={(e) => setForm({ ...form, truckId: e.target.value })}
-                className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm"
-              >
-                {trucks.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Dump Site *</label>
-              <select
-                value={form.dumpSiteId}
-                onChange={(e) => setForm({ ...form, dumpSiteId: e.target.value })}
-                className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm"
-              >
-                {dumpSites.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Date/Time *</label>
-              <input
-                type="datetime-local"
-                value={form.runAt}
-                onChange={(e) => setForm({ ...form, runAt: e.target.value })}
-                className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Weight (lbs)</label>
-              <input
-                type="number"
-                step="1"
-                value={form.weightLbs}
-                onChange={(e) => setForm({ ...form, weightLbs: e.target.value })}
-                className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Fee ($)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={form.feeCents}
-                onChange={(e) => setForm({ ...form, feeCents: e.target.value })}
-                className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Notes</label>
-              <input
-                type="text"
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm"
-              />
-            </div>
-          </div>
-
-          {/* Link jobs */}
-          {recentJobs.length > 0 && (
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Link Jobs</label>
-              <div className="flex flex-wrap gap-2">
-                {recentJobs.map((job) => (
-                  <button
-                    key={job.id}
-                    type="button"
-                    onClick={() => toggleJob(job.id)}
-                    className={`px-2 py-1 rounded text-xs font-medium border ${
-                      form.jobIds.includes(job.id)
-                        ? "bg-blue-100 border-blue-300 text-blue-700"
-                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-                    }`}
-                  >
-                    #{job.jobNumber}
-                  </button>
-                ))}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">New Dump Run</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Truck *</Label>
+                <select
+                  value={form.truckId}
+                  onChange={(e) => setForm({ ...form, truckId: e.target.value })}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring mt-1"
+                >
+                  {trucks.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Dump Site *</Label>
+                <select
+                  value={form.dumpSiteId}
+                  onChange={(e) => setForm({ ...form, dumpSiteId: e.target.value })}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring mt-1"
+                >
+                  {dumpSites.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Date/Time *</Label>
+                <Input
+                  type="datetime-local"
+                  value={form.runAt}
+                  onChange={(e) => setForm({ ...form, runAt: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Weight (lbs)</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={form.weightLbs}
+                  onChange={(e) => setForm({ ...form, weightLbs: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Fee ($)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={form.feeCents}
+                  onChange={(e) => setForm({ ...form, feeCents: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Notes</Label>
+                <Input
+                  type="text"
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  className="mt-1"
+                />
               </div>
             </div>
-          )}
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={createRun}
-              disabled={saving}
-              className="px-4 py-1.5 bg-blue-600 text-white rounded text-sm font-medium disabled:bg-gray-300 hover:bg-blue-700"
-            >
-              {saving ? "Saving..." : "Save"}
-            </button>
-            <button
-              onClick={() => { setShowForm(false); setMessage(null); }}
-              className="px-4 py-1.5 text-sm text-gray-600 hover:text-gray-900"
-            >
-              Cancel
-            </button>
-            {message && <span className="text-sm text-red-600">{message}</span>}
-          </div>
-        </div>
+            {/* Link jobs */}
+            {recentJobs.length > 0 && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Link Jobs</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {recentJobs.map((job) => (
+                    <Button
+                      key={job.id}
+                      type="button"
+                      variant={form.jobIds.includes(job.id) ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => toggleJob(job.id)}
+                      className="text-xs h-7"
+                    >
+                      #{job.jobNumber}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={createRun}
+                disabled={saving}
+                size="sm"
+              >
+                {saving ? "Saving..." : "Save"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowForm(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Runs list */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <Card>
         {initialRuns.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-gray-500 text-center">No dump runs yet.</p>
+          <p className="px-4 py-6 text-sm text-muted-foreground text-center">No dump runs yet.</p>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Truck</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Dump Site</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Weight</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Fee</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Jobs</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="px-4 text-xs uppercase">Date</TableHead>
+                <TableHead className="px-4 text-xs uppercase">Truck</TableHead>
+                <TableHead className="px-4 text-xs uppercase">Dump Site</TableHead>
+                <TableHead className="px-4 text-xs uppercase text-right">Weight</TableHead>
+                <TableHead className="px-4 text-xs uppercase text-right">Fee</TableHead>
+                <TableHead className="px-4 text-xs uppercase">Jobs</TableHead>
+                <TableHead className="px-4 text-xs uppercase text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {initialRuns.map((run) => (
-                <tr key={run.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm text-gray-900">
+                <TableRow key={run.id}>
+                  <TableCell className="px-4 py-3 text-foreground">
                     {new Date(run.runAt).toLocaleDateString("en-US", {
                       month: "short", day: "numeric", year: "numeric",
                       hour: "numeric", minute: "2-digit",
                     })}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{run.truck.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{run.dumpSite.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600 text-right">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-muted-foreground">{run.truck.name}</TableCell>
+                  <TableCell className="px-4 py-3 text-muted-foreground">{run.dumpSite.name}</TableCell>
+                  <TableCell className="px-4 py-3 text-muted-foreground text-right">
                     {run.weightLbs ? `${run.weightLbs} lbs` : "-"}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 text-right font-medium">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-foreground text-right font-medium">
                     {run.feeCents ? formatCents(run.feeCents) : "-"}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-muted-foreground">
                     {run.dumpRunJobs.length > 0
                       ? run.dumpRunJobs.map((drj) => `#${drj.job.jobNumber}`).join(", ")
                       : "-"}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-right">
-                    <button
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right">
+                    <Button
+                      variant="link"
+                      size="sm"
                       onClick={() => deleteRun(run.id)}
-                      className="text-xs text-red-600 hover:text-red-800"
+                      className="text-xs text-destructive h-auto p-0 hover:text-destructive/80"
                     >
                       Delete
-                    </button>
-                  </td>
-                </tr>
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

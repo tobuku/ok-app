@@ -3,8 +3,20 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { formatDate } from "@/lib/format";
+import { ArrowLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const dynamic = "force-dynamic";
+
+const STATUS_VARIANT: Record<string, "info" | "success" | "warning" | "destructive" | "secondary"> = {
+  TRIALING: "info",
+  ACTIVE: "success",
+  PAST_DUE: "warning",
+  SUSPENDED: "destructive",
+  CANCELED: "secondary",
+};
 
 export default async function OrgDetailPage({
   params,
@@ -33,91 +45,102 @@ export default async function OrgDetailPage({
 
   return (
     <div>
-      <Link href="/platform/orgs" className="text-sm text-blue-400 hover:text-blue-300 mb-4 block">
+      <Link
+        href="/platform/orgs"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
         Back to organizations
       </Link>
 
-      <div className="flex items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-white">{org.name}</h1>
-        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-          org.status === "ACTIVE" ? "bg-green-900 text-green-300" :
-          org.status === "TRIALING" ? "bg-blue-900 text-blue-300" :
-          org.status === "SUSPENDED" ? "bg-red-900 text-red-300" :
-          "bg-gray-700 text-gray-400"
-        }`}>
+      <div className="flex items-center gap-3 mb-6">
+        <h1 className="text-2xl font-bold">{org.name}</h1>
+        <Badge variant={STATUS_VARIANT[org.status] || "secondary"}>
           {org.status}
-        </span>
+        </Badge>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Org details */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 space-y-3">
-          <h2 className="text-sm font-medium text-gray-400">Details</h2>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="text-gray-500">Slug</div>
-            <div className="text-white">{org.slug}</div>
-            <div className="text-gray-500">Timezone</div>
-            <div className="text-white">{org.timezone}</div>
-            <div className="text-gray-500">Created</div>
-            <div className="text-white">{formatDate(org.createdAt)}</div>
-            <div className="text-gray-500">Trial Ends</div>
-            <div className="text-white">{org.trialEndsAt ? formatDate(org.trialEndsAt) : "N/A"}</div>
-            <div className="text-gray-500">Stripe Connect</div>
-            <div className="text-white">{org.stripeConnectAccountId ? "Connected" : "Not connected"}</div>
-            <div className="text-gray-500">Stripe Customer</div>
-            <div className="text-white font-mono text-xs">{org.stripeCustomerId || "None"}</div>
-          </div>
-        </div>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-y-2 text-sm">
+              <span className="text-muted-foreground">Slug</span>
+              <span>{org.slug}</span>
+              <span className="text-muted-foreground">Timezone</span>
+              <span>{org.timezone}</span>
+              <span className="text-muted-foreground">Created</span>
+              <span>{formatDate(org.createdAt)}</span>
+              <span className="text-muted-foreground">Trial Ends</span>
+              <span>{org.trialEndsAt ? formatDate(org.trialEndsAt) : "N/A"}</span>
+              <span className="text-muted-foreground">Stripe Connect</span>
+              <span>{org.stripeConnectAccountId ? "Connected" : "Not connected"}</span>
+              <span className="text-muted-foreground">Stripe Customer</span>
+              <span className="font-mono text-xs">{org.stripeCustomerId || "None"}</span>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Stats */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 space-y-3">
-          <h2 className="text-sm font-medium text-gray-400">Usage</h2>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="text-gray-500">Plan</div>
-            <div className="text-white">{org.subscription?.plan?.name ?? "None"}</div>
-            <div className="text-gray-500">Subscription Status</div>
-            <div className="text-white">{org.subscription?.status ?? "N/A"}</div>
-            <div className="text-gray-500">Users</div>
-            <div className="text-white">{org.users.length}</div>
-            <div className="text-gray-500">Jobs</div>
-            <div className="text-white">{org._count.jobs}</div>
-            <div className="text-gray-500">Customers</div>
-            <div className="text-white">{org._count.customers}</div>
-            <div className="text-gray-500">Payments</div>
-            <div className="text-white">{org._count.payments}</div>
-          </div>
-        </div>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Usage</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-y-2 text-sm">
+              <span className="text-muted-foreground">Plan</span>
+              <span>{org.subscription?.plan?.name ?? "None"}</span>
+              <span className="text-muted-foreground">Subscription Status</span>
+              <span>{org.subscription?.status ?? "N/A"}</span>
+              <span className="text-muted-foreground">Users</span>
+              <span>{org.users.length}</span>
+              <span className="text-muted-foreground">Jobs</span>
+              <span>{org._count.jobs}</span>
+              <span className="text-muted-foreground">Customers</span>
+              <span>{org._count.customers}</span>
+              <span className="text-muted-foreground">Payments</span>
+              <span>{org._count.payments}</span>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Users */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 lg:col-span-2">
-          <h2 className="text-sm font-medium text-gray-400 mb-3">Team Members</h2>
-          <table className="min-w-full divide-y divide-gray-700 text-sm">
-            <thead>
-              <tr>
-                <th className="px-3 py-2 text-left text-xs text-gray-500 uppercase">Name</th>
-                <th className="px-3 py-2 text-left text-xs text-gray-500 uppercase">Email</th>
-                <th className="px-3 py-2 text-left text-xs text-gray-500 uppercase">Role</th>
-                <th className="px-3 py-2 text-left text-xs text-gray-500 uppercase">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700">
-              {org.users.map((u) => (
-                <tr key={u.id}>
-                  <td className="px-3 py-2 text-white">{u.name}</td>
-                  <td className="px-3 py-2 text-gray-400">{u.email}</td>
-                  <td className="px-3 py-2 text-gray-400">{u.role.replace("_", " ")}</td>
-                  <td className="px-3 py-2">
-                    <span className={`px-2 py-0.5 rounded text-xs ${
-                      u.active ? "bg-green-900 text-green-300" : "bg-gray-700 text-gray-500"
-                    }`}>
-                      {u.active ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Team Members</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-lg border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {org.users.map((u) => (
+                    <TableRow key={u.id}>
+                      <TableCell className="font-medium">{u.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                      <TableCell className="text-muted-foreground">{u.role.replace("_", " ")}</TableCell>
+                      <TableCell>
+                        <Badge variant={u.active ? "success" : "secondary"}>
+                          {u.active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

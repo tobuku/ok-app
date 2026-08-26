@@ -2,6 +2,30 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { formatCents } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+
+const CHART_COLORS = [
+  "hsl(0, 0%, 15%)",
+  "hsl(0, 0%, 35%)",
+  "hsl(0, 0%, 55%)",
+  "hsl(0, 0%, 75%)",
+  "hsl(0, 0%, 88%)",
+];
 
 type Summary = {
   period: { from: string; to: string };
@@ -45,127 +69,210 @@ export function ReportsDashboard() {
   }
 
   if (loading) {
-    return <p className="text-sm text-gray-500">Loading reports...</p>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-end gap-3 flex-wrap">
+          <Skeleton className="h-9 w-36" />
+          <Skeleton className="h-9 w-36" />
+          <Skeleton className="h-9 w-24" />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-3 w-16 mb-2" />
+                <Skeleton className="h-7 w-24" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardContent className="p-4">
+            <Skeleton className="h-4 w-40 mb-3" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4 mt-2" />
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (!data) {
-    return <p className="text-sm text-red-600">Failed to load reports.</p>;
+    return <p className="text-sm text-destructive">Failed to load reports.</p>;
   }
 
   const netRevenue = data.revenue.totalCents - data.dumpCosts.totalCents;
+
+  const jobStatusData = Object.entries(data.jobsByStatus).map(([status, count]) => ({
+    status: status.replace("_", " "),
+    count,
+  }));
+
+  const funnelData = [
+    { stage: "Created", count: data.quotes.created },
+    { stage: "Accepted", count: data.quotes.accepted },
+    { stage: "Declined", count: data.quotes.declined },
+  ];
+
+  const leadmanData = [...data.leadmanPerformance].sort(
+    (a, b) => b.jobsCompleted - a.jobsCompleted
+  );
 
   return (
     <div className="space-y-6">
       {/* Date range + export */}
       <div className="flex items-end gap-3 flex-wrap">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">From</label>
-          <input
+          <Label className="text-xs text-muted-foreground mb-1">From</Label>
+          <Input
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="border border-gray-200 rounded px-3 py-1.5 text-sm"
+            className="w-auto"
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">To</label>
-          <input
+          <Label className="text-xs text-muted-foreground mb-1">To</Label>
+          <Input
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="border border-gray-200 rounded px-3 py-1.5 text-sm"
+            className="w-auto"
           />
         </div>
-        <button
-          onClick={exportCSV}
-          className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded text-sm font-medium hover:bg-gray-200"
-        >
+        <Button variant="secondary" size="sm" onClick={exportCSV}>
           Export CSV
-        </button>
+        </Button>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card label="Revenue" value={formatCents(data.revenue.totalCents)} sub={`${data.revenue.count} payment${data.revenue.count !== 1 ? "s" : ""}`} />
-        <Card label="Dump Costs" value={formatCents(data.dumpCosts.totalCents)} sub={`${data.dumpCosts.runCount} run${data.dumpCosts.runCount !== 1 ? "s" : ""}`} />
-        <Card label="Net Revenue" value={formatCents(netRevenue)} sub="" color={netRevenue >= 0 ? "text-green-700" : "text-red-600"} />
-        <Card label="Conversion" value={`${data.quotes.conversionRate}%`} sub={`${data.quotes.accepted} of ${data.quotes.created} quotes`} />
+        <MetricCard label="Revenue" value={formatCents(data.revenue.totalCents)} sub={`${data.revenue.count} payment${data.revenue.count !== 1 ? "s" : ""}`} />
+        <MetricCard label="Dump Costs" value={formatCents(data.dumpCosts.totalCents)} sub={`${data.dumpCosts.runCount} run${data.dumpCosts.runCount !== 1 ? "s" : ""}`} />
+        <MetricCard label="Net Revenue" value={formatCents(netRevenue)} sub="" color={netRevenue >= 0 ? "text-green-700 dark:text-green-400" : "text-destructive"} />
+        <MetricCard label="Conversion" value={`${data.quotes.conversionRate}%`} sub={`${data.quotes.accepted} of ${data.quotes.created} quotes`} />
       </div>
 
-      {/* Payment methods */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Payments by Method</h2>
-        {data.paymentsByMethod.length === 0 ? (
-          <p className="text-sm text-gray-400">No payments in this period.</p>
-        ) : (
-          <div className="space-y-2">
-            {data.paymentsByMethod.map((p) => (
-              <div key={p.method} className="flex justify-between text-sm">
-                <span className="text-gray-600">{p.method} ({p.count})</span>
-                <span className="font-medium text-gray-900">{formatCents(p.totalCents)}</span>
+      {/* Jobs by Status — horizontal bar chart */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Jobs by Status (All Time)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {jobStatusData.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No jobs found.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={Math.max(200, jobStatusData.length * 36)}>
+              <BarChart data={jobStatusData} layout="vertical">
+                <XAxis type="number" />
+                <YAxis type="category" dataKey="status" width={100} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="count" fill="hsl(var(--foreground))" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Payment Methods — donut pie chart */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Payments by Method</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.paymentsByMethod.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No payments in this period.</p>
+          ) : (
+            <div className="flex flex-col items-center">
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={data.paymentsByMethod}
+                    dataKey="totalCents"
+                    nameKey="method"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    label={({ method }) => method}
+                  >
+                    {data.paymentsByMethod.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v) => formatCents(Number(v))} />
+                </PieChart>
+              </ResponsiveContainer>
+              {/* Legend with counts */}
+              <div className="flex flex-wrap gap-4 mt-2 text-sm">
+                {data.paymentsByMethod.map((p, i) => (
+                  <div key={p.method} className="flex items-center gap-1.5">
+                    <span
+                      className="inline-block w-3 h-3 rounded-sm"
+                      style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+                    />
+                    <span className="text-muted-foreground">{p.method} ({p.count})</span>
+                    <span className="font-medium text-foreground">{formatCents(p.totalCents)}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Jobs by status */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Jobs by Status (All Time)</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-          {Object.entries(data.jobsByStatus).map(([status, count]) => (
-            <div key={status} className="text-sm">
-              <span className="text-gray-500">{status.replace("_", " ")}</span>
-              <span className="ml-2 font-medium text-gray-900">{count}</span>
             </div>
-          ))}
-        </div>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Leadman performance */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Leadman Performance</h2>
-        {data.leadmanPerformance.length === 0 ? (
-          <p className="text-sm text-gray-400">No completed jobs in this period.</p>
-        ) : (
-          <div className="space-y-2">
-            {data.leadmanPerformance
-              .sort((a, b) => b.jobsCompleted - a.jobsCompleted)
-              .map((lm) => (
-                <div key={lm.userId || "unassigned"} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{lm.name}</span>
-                  <span className="font-medium text-gray-900">
-                    {lm.jobsCompleted} job{lm.jobsCompleted !== 1 ? "s" : ""}
-                  </span>
-                </div>
-              ))}
-          </div>
-        )}
-      </div>
+      {/* Quote Funnel — vertical bar chart */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Quote Funnel</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={funnelData}>
+              <XAxis dataKey="stage" tick={{ fontSize: 12 }} />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                {funnelData.map((_, i) => (
+                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Conversion rate: {data.quotes.conversionRate}%
+          </p>
+        </CardContent>
+      </Card>
 
-      {/* Quote funnel */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Quote Funnel</h2>
-        <div className="flex gap-6 text-sm">
-          <div>
-            <span className="text-gray-500">Created</span>
-            <span className="ml-2 font-medium text-gray-900">{data.quotes.created}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Accepted</span>
-            <span className="ml-2 font-medium text-green-700">{data.quotes.accepted}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Declined</span>
-            <span className="ml-2 font-medium text-red-600">{data.quotes.declined}</span>
-          </div>
-        </div>
-      </div>
+      {/* Leadman Performance — horizontal bar chart */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Leadman Performance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {leadmanData.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No completed jobs in this period.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={Math.max(200, leadmanData.length * 36)}>
+              <BarChart
+                data={leadmanData.map((lm) => ({ name: lm.name, jobs: lm.jobsCompleted }))}
+                layout="vertical"
+              >
+                <XAxis type="number" allowDecimals={false} />
+                <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="jobs" fill="hsl(var(--foreground))" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
-function Card({
+function MetricCard({
   label,
   value,
   sub,
@@ -177,10 +284,12 @@ function Card({
   color?: string;
 }) {
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <p className="text-xs text-gray-500 uppercase font-medium">{label}</p>
-      <p className={`text-xl font-bold mt-1 ${color || "text-gray-900"}`}>{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
-    </div>
+    <Card>
+      <CardContent className="p-4">
+        <p className="text-xs text-muted-foreground uppercase font-medium">{label}</p>
+        <p className={`text-xl font-bold mt-1 ${color || "text-foreground"}`}>{value}</p>
+        {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+      </CardContent>
+    </Card>
   );
 }

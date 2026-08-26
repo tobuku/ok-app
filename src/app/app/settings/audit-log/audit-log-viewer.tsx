@@ -1,6 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type AuditEntry = {
   id: string;
@@ -51,11 +64,11 @@ export function AuditLogViewer() {
       {/* Filters */}
       <div className="flex items-end gap-3 flex-wrap">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Entity</label>
+          <Label className="text-xs text-muted-foreground mb-1">Entity</Label>
           <select
             value={entity}
             onChange={(e) => { setEntity(e.target.value); setPage(1); }}
-            className="border border-gray-200 rounded px-3 py-1.5 text-sm"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             <option value="">All</option>
             {["job", "customer", "quote", "payment", "priceItem", "truck", "dumpSite", "dumpRun", "user", "organization", "photo"].map((e) => (
@@ -64,11 +77,11 @@ export function AuditLogViewer() {
           </select>
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Action</label>
+          <Label className="text-xs text-muted-foreground mb-1">Action</Label>
           <select
             value={action}
             onChange={(e) => { setAction(e.target.value); setPage(1); }}
-            className="border border-gray-200 rounded px-3 py-1.5 text-sm"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             <option value="">All</option>
             <option value="CREATE">CREATE</option>
@@ -79,82 +92,90 @@ export function AuditLogViewer() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <Card className="overflow-hidden">
         {loading ? (
-          <p className="px-4 py-6 text-sm text-gray-500 text-center">Loading...</p>
+          <div className="p-4 space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-full" />
+            ))}
+          </div>
         ) : !data || data.logs.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-gray-500 text-center">No audit entries found.</p>
+          <p className="px-4 py-6 text-sm text-muted-foreground text-center">No audit entries found.</p>
         ) : (
           <>
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Entity</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="px-4 text-xs uppercase">Time</TableHead>
+                  <TableHead className="px-4 text-xs uppercase">User</TableHead>
+                  <TableHead className="px-4 text-xs uppercase">Action</TableHead>
+                  <TableHead className="px-4 text-xs uppercase">Entity</TableHead>
+                  <TableHead className="px-4 text-xs uppercase">ID</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {data.logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 text-xs text-gray-600 whitespace-nowrap">
+                  <TableRow key={log.id}>
+                    <TableCell className="px-4 py-2 text-xs text-muted-foreground whitespace-nowrap">
                       {new Date(log.createdAt).toLocaleString("en-US", {
                         month: "short", day: "numeric",
                         hour: "numeric", minute: "2-digit",
                       })}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900">
+                    </TableCell>
+                    <TableCell className="px-4 py-2 text-sm text-foreground">
                       {log.actorName || "System"}
-                    </td>
-                    <td className="px-4 py-2 text-sm">
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        log.action === "CREATE"
-                          ? "bg-green-100 text-green-700"
-                          : log.action === "DELETE"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-blue-100 text-blue-700"
-                      }`}>
+                    </TableCell>
+                    <TableCell className="px-4 py-2 text-sm">
+                      <Badge
+                        variant={
+                          log.action === "CREATE"
+                            ? "success"
+                            : log.action === "DELETE"
+                            ? "destructive"
+                            : "info"
+                        }
+                      >
                         {log.action}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-600">{log.entity}</td>
-                    <td className="px-4 py-2 text-xs text-gray-400 font-mono">
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-2 text-sm text-muted-foreground">{log.entity}</TableCell>
+                    <TableCell className="px-4 py-2 text-xs text-muted-foreground font-mono">
                       {log.entityId.slice(0, 8)}...
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
 
             {/* Pagination */}
             {data.totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
-                <span className="text-xs text-gray-500">
+              <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-t border-border">
+                <span className="text-xs text-muted-foreground">
                   {data.total} entries — page {data.page} of {data.totalPages}
                 </span>
                 <div className="flex gap-2">
-                  <button
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page <= 1}
-                    className="px-3 py-1 text-xs border border-gray-200 rounded disabled:opacity-40 hover:bg-gray-100"
                   >
                     Prev
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
                     disabled={page >= data.totalPages}
-                    className="px-3 py-1 text-xs border border-gray-200 rounded disabled:opacity-40 hover:bg-gray-100"
                   >
                     Next
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
           </>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

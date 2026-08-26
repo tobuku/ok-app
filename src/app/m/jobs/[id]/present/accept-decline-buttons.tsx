@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { showError } from "@/lib/toast";
 
 export function AcceptDeclineButtons({
   quoteId,
@@ -12,7 +17,6 @@ export function AcceptDeclineButtons({
 }) {
   const router = useRouter();
   const [acting, setActing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<"accepted" | "declined" | null>(null);
   const [customerEmail, setCustomerEmail] = useState("");
 
@@ -23,7 +27,6 @@ export function AcceptDeclineButtons({
     }
 
     setActing(true);
-    setError(null);
 
     try {
       const body: Record<string, string> = {};
@@ -38,14 +41,14 @@ export function AcceptDeclineButtons({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || `Failed to ${action}`);
+        showError(data.error || `Failed to ${action}`);
       } else {
         setDone(action === "accept" ? "accepted" : "declined");
         // Refresh the page after a moment
         setTimeout(() => router.push(`/m/jobs/${jobId}`), 2000);
       }
     } catch {
-      setError("Network error");
+      showError("Network error");
     } finally {
       setActing(false);
     }
@@ -53,54 +56,58 @@ export function AcceptDeclineButtons({
 
   if (done === "accepted") {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-        <p className="text-green-800 font-medium text-lg">Quote Accepted</p>
-        <p className="text-green-600 text-sm mt-1">Thank you</p>
-      </div>
+      <Card className="border-green-200 bg-green-50">
+        <CardContent className="p-4 text-center">
+          <p className="text-green-800 font-medium text-lg">Quote Accepted</p>
+          <p className="text-green-600 text-sm mt-1">Thank you</p>
+        </CardContent>
+      </Card>
     );
   }
 
   if (done === "declined") {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-        <p className="text-red-800 font-medium">Quote Declined</p>
-      </div>
+      <Card className="border-red-200 bg-red-50">
+        <CardContent className="p-4 text-center">
+          <p className="text-red-800 font-medium">Quote Declined</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-3 pt-2">
       {/* Customer email for receipt */}
-      <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1">
+      <div className="space-y-1">
+        <Label htmlFor="customer-email" className="text-xs text-muted-foreground">
           Customer Email (for receipt)
-        </label>
-        <input
+        </Label>
+        <Input
+          id="customer-email"
           type="email"
           value={customerEmail}
           onChange={(e) => setCustomerEmail(e.target.value)}
           placeholder="customer@example.com"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
         />
       </div>
 
-      {error && <p className="text-red-600 text-xs text-center">{error}</p>}
-      <button
+      <Button
         type="button"
         onClick={() => handleAction("accept")}
         disabled={acting}
-        className="w-full py-4 rounded-xl font-bold text-white text-lg bg-green-600 hover:bg-green-700 disabled:bg-gray-300"
+        className="w-full bg-green-600 hover:bg-green-700 text-white h-14 text-lg font-bold"
       >
         {acting ? "..." : "Accept Quote"}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="outline"
         onClick={() => handleAction("decline")}
         disabled={acting}
-        className="w-full py-3 rounded-xl font-medium text-red-600 text-sm border border-red-200 hover:bg-red-50 disabled:bg-gray-100"
+        className="w-full h-12 text-sm font-medium text-red-600 border-red-200 hover:bg-red-50"
       >
         Decline
-      </button>
+      </Button>
     </div>
   );
 }

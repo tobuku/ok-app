@@ -7,24 +7,16 @@ import { canTransition } from "@/lib/status";
 import { getSignedUrls } from "@/lib/storage";
 import Link from "next/link";
 import type { JobStatus } from "@prisma/client";
+import { ArrowLeft, Clock, MapPin, User, FileText, Camera, CreditCard } from "lucide-react";
 import { JobStatusButton } from "./status-button";
 import { JobEditForm } from "./edit-form";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusBadge, getStatusLabel } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_LABELS: Record<JobStatus, string> = {
-  NEW: "New",
-  SCHEDULED: "Scheduled",
-  EN_ROUTE: "En Route",
-  ON_SITE: "On Site",
-  QUOTED: "Quoted",
-  ACCEPTED: "Accepted",
-  DECLINED: "Declined",
-  IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed",
-  PAID: "Paid",
-  CANCELED: "Canceled",
-};
 
 const ALL_STATUSES: JobStatus[] = [
   "NEW", "SCHEDULED", "EN_ROUTE", "ON_SITE", "QUOTED", "ACCEPTED",
@@ -77,19 +69,15 @@ export default async function JobDetailPage({
 
   if (!job) redirect("/app");
 
-  // Get available transitions
   const transitions = ALL_STATUSES.filter((s) => canTransition(job.status, s));
 
-  // Get org users for reassignment dropdown
   const orgUsers = await prisma.user.findMany({
     where: { orgId: user.orgId, active: true },
     select: { id: true, name: true, role: true },
     orderBy: { name: "asc" },
   });
-
   const leadmen = orgUsers.filter((u) => u.role === "LEADMAN");
 
-  // Fetch photos for this job
   const photos = await t.findMany<{
     id: string;
     type: string;
@@ -102,7 +90,6 @@ export default async function JobDetailPage({
   const beforePhotos = photos.filter((p) => p.type === "BEFORE");
   const afterPhotos = photos.filter((p) => p.type === "AFTER");
 
-  // Fetch latest quote
   const quotes = await t.findMany<{
     id: string;
     status: string;
@@ -123,7 +110,6 @@ export default async function JobDetailPage({
       }>("quoteLine", { where: { quoteId: latestQuote.id } })
     : [];
 
-  // Fetch payments for this job
   const payments = await t.findMany<{
     id: string;
     method: string;
@@ -136,175 +122,222 @@ export default async function JobDetailPage({
   });
 
   return (
-    <div className="max-w-3xl">
-      <Link href="/app" className="text-sm text-blue-600 hover:underline mb-4 block">
-        Back to board
-      </Link>
+    <div className="max-w-4xl">
+      <Button variant="ghost" size="sm" asChild className="mb-4">
+        <Link href="/app">
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back to board
+        </Link>
+      </Button>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">
-              Job #{job.jobNumber}
-            </h1>
-            <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-              {STATUS_LABELS[job.status]}
-            </span>
-          </div>
+      <div className="flex items-center gap-3 mb-6">
+        <h1 className="text-2xl font-bold">Job #{job.jobNumber}</h1>
+        <StatusBadge status={job.status} />
+      </div>
+
+      {/* Status transitions */}
+      {transitions.length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          {transitions.map((s) => (
+            <JobStatusButton
+              key={s}
+              jobId={job.id}
+              newStatus={s}
+              label={getStatusLabel(s)}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Customer */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Customer
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm space-y-1">
+              <p className="font-medium">{job.customer.name}</p>
+              {job.customer.phone && <p className="text-muted-foreground">{job.customer.phone}</p>}
+              {job.customer.email && <p className="text-muted-foreground">{job.customer.email}</p>}
+              {job.address && (
+                <p className="text-muted-foreground flex items-start gap-1 mt-2">
+                  <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  {job.address.line1}
+                  {job.address.line2 ? `, ${job.address.line2}` : ""},{" "}
+                  {job.address.city}, {job.address.state} {job.address.zip}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Photos */}
+          {photos.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Camera className="h-4 w-4" />
+                  Photos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {beforePhotos.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2">Before ({beforePhotos.length})</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {beforePhotos.map((p) => (
+                        <a key={p.id} href={photoUrls[p.storageKey] ?? "#"} target="_blank" rel="noopener noreferrer">
+                          <img src={photoUrls[p.storageKey] ?? ""} alt="Before" className="w-24 h-24 object-cover rounded-md border border-border" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {afterPhotos.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2">After ({afterPhotos.length})</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {afterPhotos.map((p) => (
+                        <a key={p.id} href={photoUrls[p.storageKey] ?? "#"} target="_blank" rel="noopener noreferrer">
+                          <img src={photoUrls[p.storageKey] ?? ""} alt="After" className="w-24 h-24 object-cover rounded-md border border-border" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Quote */}
+          {latestQuote && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Quote
+                  <Badge variant="secondary" className="ml-1">{latestQuote.status}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm space-y-1.5">
+                  {quoteLines.map((line) => (
+                    <div key={line.id} className="flex justify-between">
+                      <span className="text-muted-foreground">{line.label}{line.qty > 1 ? ` x${line.qty}` : ""}</span>
+                      <span className="font-mono">{formatCents(line.totalCents)}</span>
+                    </div>
+                  ))}
+                  <Separator />
+                  <div className="flex justify-between font-medium">
+                    <span>Total</span>
+                    <span className="font-mono">{formatCents(latestQuote.totalCents)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Payment */}
+          {payments.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Payment
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {payments.map((p) => (
+                  <div key={p.id} className="flex justify-between items-center text-sm py-2 border-b border-border last:border-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{p.method === "CARD" ? "Card" : "Cash"}</span>
+                      <Badge variant={
+                        p.status === "SUCCEEDED" ? "success" :
+                        p.status === "PENDING" ? "warning" :
+                        p.status === "FAILED" ? "destructive" :
+                        "secondary"
+                      }>
+                        {p.status}
+                      </Badge>
+                      {p.paidAt && <span className="text-xs text-muted-foreground">{formatDate(p.paidAt)}</span>}
+                    </div>
+                    <span className="font-mono font-medium">{formatCents(p.amountCents)}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
-        {/* Status transitions */}
-        {transitions.length > 0 && (
-          <div className="mb-6 flex flex-wrap gap-2">
-            {transitions.map((s) => (
-              <JobStatusButton
-                key={s}
-                jobId={job.id}
-                newStatus={s}
-                label={STATUS_LABELS[s]}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Customer info */}
-        <section className="mb-4">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">Customer</h2>
-          <p className="font-medium text-gray-900">{job.customer.name}</p>
-          {job.customer.phone && <p className="text-sm text-gray-700">{job.customer.phone}</p>}
-          {job.customer.email && <p className="text-sm text-gray-700">{job.customer.email}</p>}
-          {job.address && (
-            <p className="text-sm text-gray-700 mt-1">
-              {job.address.line1}
-              {job.address.line2 ? `, ${job.address.line2}` : ""},{" "}
-              {job.address.city}, {job.address.state} {job.address.zip}
-            </p>
-          )}
-        </section>
-
-        {/* Schedule & assignment */}
-        <section className="mb-4 grid grid-cols-2 gap-2">
-          <div>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-0.5">Scheduled</h2>
-            <p className="text-sm text-gray-900">{job.scheduledDate ? formatDate(job.scheduledDate) : "Not scheduled"}</p>
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-0.5">Assigned To</h2>
-            <p className="text-sm text-gray-900">{job.assignedTo?.name ?? "Unassigned"}</p>
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-0.5">Source</h2>
-            <p className="text-sm text-gray-900">{job.source}</p>
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-0.5">Created By</h2>
-            <p className="text-sm text-gray-900">{job.createdBy.name}</p>
-          </div>
-        </section>
-
-        {/* Timestamps */}
-        {(job.enRouteAt || job.onSiteAt || job.completedAt || job.canceledAt) && (
-          <section className="mb-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">Timeline</h2>
-            <div className="text-sm text-gray-900 space-y-0.5">
-              {job.enRouteAt && <p>En Route: {formatDate(job.enRouteAt)}</p>}
-              {job.onSiteAt && <p>On Site: {formatDate(job.onSiteAt)}</p>}
-              {job.completedAt && <p>Completed: {formatDate(job.completedAt)}</p>}
-              {job.canceledAt && (
-                <p>Canceled: {formatDate(job.canceledAt)}{job.cancelReason ? ` — ${job.cancelReason}` : ""}</p>
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* Notes */}
-        {job.notes && (
-          <section className="mb-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">Notes</h2>
-            <p className="text-sm text-gray-900 whitespace-pre-wrap">{job.notes}</p>
-          </section>
-        )}
-
-        {/* Photos */}
-        {photos.length > 0 && (
-          <section className="mb-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">Photos</h2>
-            {beforePhotos.length > 0 && (
-              <div className="mb-2">
-                <p className="text-xs text-gray-600 mb-1">Before ({beforePhotos.length})</p>
-                <div className="flex gap-2 flex-wrap">
-                  {beforePhotos.map((p) => (
-                    <a key={p.id} href={photoUrls[p.storageKey] ?? "#"} target="_blank" rel="noopener noreferrer">
-                      <img src={photoUrls[p.storageKey] ?? ""} alt="Before" className="w-24 h-24 object-cover rounded border border-gray-200" />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-            {afterPhotos.length > 0 && (
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Details */}
+          <Card>
+            <CardContent className="pt-6 space-y-4 text-sm">
               <div>
-                <p className="text-xs text-gray-600 mb-1">After ({afterPhotos.length})</p>
-                <div className="flex gap-2 flex-wrap">
-                  {afterPhotos.map((p) => (
-                    <a key={p.id} href={photoUrls[p.storageKey] ?? "#"} target="_blank" rel="noopener noreferrer">
-                      <img src={photoUrls[p.storageKey] ?? ""} alt="After" className="w-24 h-24 object-cover rounded border border-gray-200" />
-                    </a>
-                  ))}
-                </div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase mb-0.5">Scheduled</p>
+                <p>{job.scheduledDate ? formatDate(job.scheduledDate) : "Not scheduled"}</p>
               </div>
-            )}
-          </section>
-        )}
-
-        {/* Quote */}
-        {latestQuote && (
-          <section className="mb-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">
-              Quote — {latestQuote.status}
-            </h2>
-            <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-900 space-y-1">
-              {quoteLines.map((line) => (
-                <div key={line.id} className="flex justify-between">
-                  <span>{line.label}{line.qty > 1 ? ` x${line.qty}` : ""}</span>
-                  <span className="text-gray-900">{formatCents(line.totalCents)}</span>
-                </div>
-              ))}
-              <div className="border-t border-gray-200 pt-1 mt-2 font-medium text-gray-900 flex justify-between">
-                <span>Total</span>
-                <span className="text-gray-900">{formatCents(latestQuote.totalCents)}</span>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase mb-0.5">Assigned To</p>
+                <p>{job.assignedTo?.name ?? "Unassigned"}</p>
               </div>
-            </div>
-          </section>
-        )}
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase mb-0.5">Source</p>
+                <p>{job.source}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase mb-0.5">Created By</p>
+                <p>{job.createdBy.name}</p>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Payment */}
-        {payments.length > 0 && (
-          <section className="mb-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-1">Payment</h2>
-            <div className="space-y-2">
-              {payments.map((p) => (
-                <div key={p.id} className="bg-gray-50 rounded-lg p-3 text-sm flex justify-between items-center">
-                  <div>
-                    <span className="font-medium">{p.method === "CARD" ? "Card" : "Cash"}</span>
-                    <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
-                      p.status === "SUCCEEDED" ? "bg-green-100 text-green-700" :
-                      p.status === "PENDING" ? "bg-yellow-100 text-yellow-700" :
-                      p.status === "FAILED" ? "bg-red-100 text-red-700" :
-                      "bg-gray-100 text-gray-700"
-                    }`}>{p.status}</span>
-                    {p.paidAt && <span className="text-xs text-gray-600 ml-2">{formatDate(p.paidAt)}</span>}
-                  </div>
-                  <span className="font-medium">{formatCents(p.amountCents)}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+          {/* Timeline */}
+          {(job.enRouteAt || job.onSiteAt || job.completedAt || job.canceledAt) && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Timeline
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm space-y-1.5">
+                {job.enRouteAt && <p>En Route: {formatDate(job.enRouteAt)}</p>}
+                {job.onSiteAt && <p>On Site: {formatDate(job.onSiteAt)}</p>}
+                {job.completedAt && <p>Completed: {formatDate(job.completedAt)}</p>}
+                {job.canceledAt && (
+                  <p>Canceled: {formatDate(job.canceledAt)}{job.cancelReason ? ` - ${job.cancelReason}` : ""}</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-        {/* Edit form for Dispatcher/Admin */}
-        {(user.role === "DISPATCHER" || user.role === "ORG_ADMIN") && (
-          <section className="border-t pt-6 mt-6">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-4">Edit Job</h2>
+          {/* Notes */}
+          {job.notes && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold">Notes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm whitespace-pre-wrap text-muted-foreground">{job.notes}</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Edit form for Dispatcher/Admin */}
+      {(user.role === "DISPATCHER" || user.role === "ORG_ADMIN") && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Edit Job</CardTitle>
+          </CardHeader>
+          <CardContent>
             <JobEditForm
               jobId={job.id}
               currentAssignedToId={job.assignedToId}
@@ -312,9 +345,9 @@ export default async function JobDetailPage({
               currentNotes={job.notes}
               leadmen={leadmen}
             />
-          </section>
-        )}
-      </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

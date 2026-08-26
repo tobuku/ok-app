@@ -3,6 +3,11 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2 } from "lucide-react";
 
 function OnboardingContent() {
   const searchParams = useSearchParams();
@@ -64,7 +69,6 @@ function OnboardingContent() {
       }
 
       setStep("done");
-      // Redirect to login after 2 seconds
       setTimeout(() => {
         window.location.href = "/login";
       }, 2000);
@@ -75,92 +79,98 @@ function OnboardingContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
         {step === "validating" && (
-          <p className="text-center text-gray-500">Validating invite...</p>
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">Validating invite...</p>
+          </CardContent>
         )}
 
         {step === "invalid" && (
-          <div className="text-center">
-            <h1 className="text-xl font-bold text-gray-900 mb-4">Invalid Invite</h1>
-            <p className="text-gray-600 mb-4">
-              {error || "This invite link is invalid or has expired."}
-            </p>
-            <a href="/login" className="text-blue-600 hover:underline text-sm">
-              Go to login
-            </a>
-          </div>
+          <>
+            <CardHeader className="text-center">
+              <CardTitle>Invalid Invite</CardTitle>
+              <CardDescription>
+                {error || "This invite link is invalid or has expired."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <a href="/login" className="text-sm text-primary hover:underline">
+                Go to login
+              </a>
+            </CardContent>
+          </>
         )}
 
         {step === "set-password" && invite && (
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">Welcome, {invite.user.name}</h1>
-            <p className="text-gray-600 mb-6">
-              Set your password to get started with <span className="font-medium">{invite.org.name}</span>.
-            </p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
+          <>
+            <CardHeader>
+              <CardTitle>Welcome, {invite.user.name}</CardTitle>
+              <CardDescription>
+                Set your password to get started with <span className="font-medium text-foreground">{invite.org.name}</span>.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
                   type="email"
                   value={invite.user.email}
                   disabled
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-50 text-gray-500"
+                  className="bg-muted"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input
+              <div className="space-y-2">
+                <Label>Password</Label>
+                <Input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-                <input
+              <div className="space-y-2">
+                <Label>Confirm Password</Label>
+                <Input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                 />
               </div>
 
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {error && <p className="text-sm text-destructive">{error}</p>}
 
-              <button
-                onClick={handleAccept}
-                disabled={saving}
-                className="w-full rounded-md bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 disabled:opacity-50"
-              >
+              <Button onClick={handleAccept} disabled={saving} className="w-full">
                 {saving ? "Creating account..." : "Create Account"}
-              </button>
-            </div>
+              </Button>
 
-            <p className="text-xs text-gray-400 mt-4 text-center">
-              After setting your password, you'll be redirected to sign in. From there, go to Settings to configure branding, pricing, team, and Stripe.
-            </p>
-          </div>
+              <p className="text-xs text-muted-foreground text-center">
+                After setting your password, you'll be redirected to sign in.
+              </p>
+            </CardContent>
+          </>
         )}
 
         {step === "done" && (
-          <div className="text-center">
-            <h1 className="text-xl font-bold text-green-700 mb-2">Account Created</h1>
-            <p className="text-gray-600">Redirecting to sign in...</p>
-          </div>
+          <CardContent className="pt-6 text-center space-y-2">
+            <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto" />
+            <CardTitle>Account Created</CardTitle>
+            <p className="text-sm text-muted-foreground">Redirecting to sign in...</p>
+          </CardContent>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
 
 export default function OnboardingPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50"><p className="text-gray-500">Loading...</p></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    }>
       <OnboardingContent />
     </Suspense>
   );

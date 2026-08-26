@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 import { tenantScope } from "@/lib/tenant";
 import Link from "next/link";
 import type { JobStatus } from "@prisma/client";
+import { ChevronRight, MapPin } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { StatusBadge, getStatusBorderColor } from "@/components/status-badge";
+import { EmptyState } from "@/components/empty-state";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -16,24 +21,6 @@ type TodayJob = {
   address: { line1: string; city: string; state: string; zip: string } | null;
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  SCHEDULED: "Scheduled",
-  EN_ROUTE: "En Route",
-  ON_SITE: "On Site",
-  QUOTED: "Quoted",
-  ACCEPTED: "Accepted",
-  IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  SCHEDULED: "bg-blue-100 text-blue-800",
-  EN_ROUTE: "bg-yellow-100 text-yellow-800",
-  ON_SITE: "bg-orange-100 text-orange-800",
-  IN_PROGRESS: "bg-purple-100 text-purple-800",
-  COMPLETED: "bg-green-100 text-green-800",
-};
-
 export default async function TodayPage() {
   const result = await resolveAuth();
   if (!result.ok) redirect("/login");
@@ -45,13 +32,11 @@ export default async function TodayPage() {
   const m = String(today.getMonth() + 1).padStart(2, "0");
   const d = String(today.getDate()).padStart(2, "0");
   const todayStr = `${y}-${m}-${d}`;
-  // Use UTC bounds so dates stored as UTC midnight match correctly
   const start = new Date(todayStr + "T00:00:00Z");
   const end = new Date(todayStr + "T23:59:59.999Z");
 
   const t = tenantScope({ orgId: user.orgId, actorUserId: user.id });
 
-  // Leadman sees only their assigned jobs; others see all
   const where: Record<string, unknown> = {
     scheduledDate: { gte: start, lte: end },
     status: { notIn: ["PAID", "CANCELED"] },
@@ -69,10 +54,8 @@ export default async function TodayPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-1">
-        Today&apos;s Jobs
-      </h1>
-      <p className="text-sm text-gray-500 mb-4">
+      <h1 className="text-xl font-bold mb-1">Today&apos;s Jobs</h1>
+      <p className="text-sm text-muted-foreground mb-4">
         {today.toLocaleDateString("en-US", {
           weekday: "long",
           month: "long",
@@ -81,49 +64,41 @@ export default async function TodayPage() {
       </p>
 
       {jobs.length === 0 ? (
-        <p className="text-gray-400 text-center mt-12">No jobs scheduled for today.</p>
+        <EmptyState
+          title="No jobs scheduled for today"
+          className="mt-12"
+        />
       ) : (
         <div className="space-y-3">
           {jobs.map((job) => (
-            <Link
-              key={job.id}
-              href={`/m/jobs/${job.id}`}
-              className="block bg-white rounded-lg shadow-sm border border-gray-200 p-4 active:bg-gray-50"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-mono text-gray-400">#{job.jobNumber}</span>
-                    <span
-                      className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                        STATUS_COLORS[job.status] || "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {STATUS_LABELS[job.status] || job.status}
-                    </span>
+            <Link key={job.id} href={`/m/jobs/${job.id}`}>
+              <Card className={cn(
+                "p-4 active:bg-accent transition-colors border-l-4",
+                getStatusBorderColor(job.status)
+              )}>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-mono text-muted-foreground">#{job.jobNumber}</span>
+                      <StatusBadge status={job.status} />
+                    </div>
+                    <p className="font-medium truncate">{job.customer.name}</p>
+                    {job.customer.phone && (
+                      <p className="text-sm text-muted-foreground">{job.customer.phone}</p>
+                    )}
+                    {job.address && (
+                      <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        {job.address.line1}, {job.address.city}
+                      </p>
+                    )}
+                    {job.notes && (
+                      <p className="text-xs text-muted-foreground/70 mt-1 truncate">{job.notes}</p>
+                    )}
                   </div>
-                  <p className="font-medium text-gray-900 truncate">{job.customer.name}</p>
-                  {job.customer.phone && (
-                    <p className="text-sm text-gray-500">{job.customer.phone}</p>
-                  )}
-                  {job.address && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      {job.address.line1}, {job.address.city}
-                    </p>
-                  )}
-                  {job.notes && (
-                    <p className="text-xs text-gray-400 mt-1 truncate">{job.notes}</p>
-                  )}
+                  <ChevronRight className="w-5 h-5 text-muted-foreground/40 shrink-0 mt-1" />
                 </div>
-                <svg
-                  className="w-5 h-5 text-gray-300 flex-shrink-0 mt-1"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
+              </Card>
             </Link>
           ))}
         </div>

@@ -11,6 +11,8 @@ import { prisma } from "@/lib/prisma";
 import { formatCents } from "@/lib/format";
 import { getSignedUrl } from "@/lib/storage";
 import { AcceptDeclineButtons } from "./accept-decline-buttons";
+import { Separator } from "@/components/ui/separator";
+import { CheckCircle2, XCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -30,20 +32,17 @@ export default async function PresentQuotePage({
 
   const t = tenantScope({ orgId: user.orgId, actorUserId: user.id });
 
-  // Load org branding
   const org = await prisma.organization.findUnique({
     where: { id: user.orgId },
     select: { name: true, logoKey: true, taxRateBps: true },
   });
   if (!org) redirect("/m");
 
-  // Get logo URL if exists
   let logoUrl: string | null = null;
   if (org.logoKey) {
     logoUrl = await getSignedUrl(org.logoKey);
   }
 
-  // Load quote
   let quoteWhere: Record<string, unknown> = { jobId };
   if (quoteId) quoteWhere = { id: quoteId };
 
@@ -62,7 +61,6 @@ export default async function PresentQuotePage({
 
   if (!quote) redirect(`/m/jobs/${jobId}`);
 
-  // Load quote lines
   const lines = await t.findMany<{
     id: string;
     label: string;
@@ -73,7 +71,6 @@ export default async function PresentQuotePage({
     where: { quoteId: quote.id },
   });
 
-  // Auto-present if still draft
   let quoteStatus = quote.status;
   if (quoteStatus === "DRAFT") {
     await t.update("quote", {
@@ -86,10 +83,10 @@ export default async function PresentQuotePage({
   const isPresented = quoteStatus === "PRESENTED";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-start justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg max-w-md w-full overflow-hidden">
+    <div className="min-h-screen bg-background flex items-start justify-center p-4">
+      <div className="bg-card rounded-2xl shadow-lg max-w-md w-full overflow-hidden border border-border">
         {/* Tenant branding header — NO platform branding */}
-        <div className="bg-gray-900 px-6 py-8 text-center">
+        <div className="bg-foreground px-6 py-8 text-center">
           {logoUrl ? (
             <img
               src={logoUrl}
@@ -97,9 +94,9 @@ export default async function PresentQuotePage({
               className="h-16 mx-auto mb-3 object-contain"
             />
           ) : (
-            <h1 className="text-2xl font-bold text-white">{org.name}</h1>
+            <h1 className="text-2xl font-bold text-background">{org.name}</h1>
           )}
-          <p className="text-gray-400 text-sm mt-2">Service Quote</p>
+          <p className="text-muted-foreground text-sm mt-2">Service Quote</p>
         </div>
 
         {/* Quote breakdown */}
@@ -107,26 +104,28 @@ export default async function PresentQuotePage({
           <div className="space-y-2">
             {lines.map((line) => (
               <div key={line.id} className="flex justify-between text-sm">
-                <span className="text-gray-700">
+                <span className="text-muted-foreground">
                   {line.label}
                   {line.qty > 1 && ` x${line.qty}`}
                 </span>
-                <span className="font-medium text-gray-900">{formatCents(line.totalCents)}</span>
+                <span className="font-medium font-mono">{formatCents(line.totalCents)}</span>
               </div>
             ))}
           </div>
 
-          <div className="border-t border-gray-100 pt-3 space-y-1">
+          <Separator />
+
+          <div className="space-y-1">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Subtotal</span>
-              <span className="text-gray-900">{formatCents(quote.subtotalCents)}</span>
+              <span className="text-muted-foreground">Subtotal</span>
+              <span className="font-mono">{formatCents(quote.subtotalCents)}</span>
             </div>
             {quote.discountCents > 0 && (
-              <div className="flex justify-between text-sm text-red-600">
+              <div className="flex justify-between text-sm text-red-600 dark:text-red-400">
                 <span>
                   Discount
                   {quote.discountReason && (
-                    <span className="text-xs text-gray-400 ml-1">
+                    <span className="text-xs text-muted-foreground ml-1">
                       ({quote.discountReason})
                     </span>
                   )}
@@ -136,13 +135,14 @@ export default async function PresentQuotePage({
             )}
             {quote.taxCents > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Tax</span>
-                <span className="text-gray-900">{formatCents(quote.taxCents)}</span>
+                <span className="text-muted-foreground">Tax</span>
+                <span className="font-mono">{formatCents(quote.taxCents)}</span>
               </div>
             )}
-            <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-100">
+            <Separator />
+            <div className="flex justify-between text-lg font-bold pt-2">
               <span>Total</span>
-              <span>{formatCents(quote.totalCents)}</span>
+              <span className="font-mono">{formatCents(quote.totalCents)}</span>
             </div>
           </div>
 
@@ -150,13 +150,15 @@ export default async function PresentQuotePage({
           {isPresented ? (
             <AcceptDeclineButtons quoteId={quote.id} jobId={jobId} />
           ) : quoteStatus === "ACCEPTED" ? (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-              <p className="text-green-800 font-medium text-lg">Quote Accepted</p>
-              <p className="text-green-600 text-sm mt-1">Thank you</p>
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
+              <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-1" />
+              <p className="text-green-800 dark:text-green-400 font-medium text-lg">Quote Accepted</p>
+              <p className="text-green-600 dark:text-green-500 text-sm mt-1">Thank you</p>
             </div>
           ) : quoteStatus === "DECLINED" ? (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-              <p className="text-red-800 font-medium">Quote Declined</p>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+              <XCircle className="h-6 w-6 text-red-600 mx-auto mb-1" />
+              <p className="text-red-800 dark:text-red-400 font-medium">Quote Declined</p>
             </div>
           ) : null}
         </div>

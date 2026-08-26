@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { tenantScope } from "@/lib/tenant";
 import Link from "next/link";
 import type { JobStatus } from "@prisma/client";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { JobCard } from "@/components/job-card";
 
 export const dynamic = "force-dynamic";
 
@@ -16,13 +19,13 @@ type JobRow = {
   assignedTo: { id: string; name: string } | null;
 };
 
-const BOARD_COLUMNS: { status: JobStatus; label: string; color: string }[] = [
-  { status: "NEW", label: "New", color: "bg-gray-100" },
-  { status: "SCHEDULED", label: "Scheduled", color: "bg-blue-50" },
-  { status: "EN_ROUTE", label: "En Route", color: "bg-yellow-50" },
-  { status: "ON_SITE", label: "On Site", color: "bg-orange-50" },
-  { status: "IN_PROGRESS", label: "In Progress", color: "bg-purple-50" },
-  { status: "COMPLETED", label: "Completed", color: "bg-green-50" },
+const BOARD_COLUMNS: { status: JobStatus; label: string }[] = [
+  { status: "NEW", label: "New" },
+  { status: "SCHEDULED", label: "Scheduled" },
+  { status: "EN_ROUTE", label: "En Route" },
+  { status: "ON_SITE", label: "On Site" },
+  { status: "IN_PROGRESS", label: "In Progress" },
+  { status: "COMPLETED", label: "Completed" },
 ];
 
 export default async function JobBoardPage() {
@@ -31,7 +34,6 @@ export default async function JobBoardPage() {
   if (!("user" in result)) redirect("/platform");
   const { user } = result;
 
-  // Leadman should use mobile view
   if (user.role === "LEADMAN") redirect("/m");
 
   const t = tenantScope({ orgId: user.orgId, actorUserId: user.id });
@@ -53,48 +55,32 @@ export default async function JobBoardPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Job Board</h1>
-        <Link
-          href="/app/jobs/new"
-          className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-        >
-          New Job
-        </Link>
+        <Button asChild>
+          <Link href="/app/jobs/new">
+            <Plus className="h-4 w-4 mr-1" />
+            New Job
+          </Link>
+        </Button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {jobsByStatus.map((col) => (
-          <div key={col.status} className={`rounded-lg p-3 ${col.color} min-h-[200px]`}>
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">
+          <div key={col.status} className="rounded-lg border border-border bg-muted/40 p-3 min-h-[200px]">
+            <h2 className="text-sm font-semibold text-muted-foreground mb-3">
               {col.label}{" "}
-              <span className="text-gray-400">({col.jobs.length})</span>
+              <span className="text-muted-foreground/60">({col.jobs.length})</span>
             </h2>
             <div className="space-y-2">
               {col.jobs.map((job) => (
-                <Link
+                <JobCard
                   key={job.id}
-                  href={`/app/jobs/${job.id}`}
-                  className="block bg-white rounded-md p-3 shadow-sm hover:shadow-md transition-shadow border border-gray-100"
-                >
-                  <div className="text-xs font-mono text-gray-400 mb-1">
-                    #{job.jobNumber}
-                  </div>
-                  <div className="text-sm font-medium text-gray-900 truncate">
-                    {job.customer.name}
-                  </div>
-                  {job.assignedTo && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      {job.assignedTo.name}
-                    </div>
-                  )}
-                  {job.scheduledDate && (
-                    <div className="text-xs text-gray-400 mt-1">
-                      {new Date(job.scheduledDate).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </div>
-                  )}
-                </Link>
+                  id={job.id}
+                  jobNumber={job.jobNumber}
+                  status={job.status}
+                  customerName={job.customer.name}
+                  assigneeName={job.assignedTo?.name}
+                  scheduledDate={job.scheduledDate}
+                />
               ))}
             </div>
           </div>

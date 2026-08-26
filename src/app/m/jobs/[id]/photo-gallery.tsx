@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Photo = {
   id: string;
@@ -21,7 +22,19 @@ export function PhotoGallery({ jobId }: { jobId: string }) {
       .finally(() => setLoading(false));
   }, [jobId]);
 
-  if (loading) return <p className="text-xs text-gray-400">Loading photos...</p>;
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-24" />
+        <div className="flex gap-2">
+          <Skeleton className="w-20 h-20 rounded-md" />
+          <Skeleton className="w-20 h-20 rounded-md" />
+          <Skeleton className="w-20 h-20 rounded-md" />
+        </div>
+      </div>
+    );
+  }
+
   if (photos.length === 0) return null;
 
   const before = photos.filter((p) => p.type === "BEFORE");
@@ -31,7 +44,7 @@ export function PhotoGallery({ jobId }: { jobId: string }) {
     <div className="space-y-3">
       {before.length > 0 && (
         <div>
-          <p className="text-xs font-medium text-gray-500 uppercase mb-1">
+          <p className="text-xs font-medium text-muted-foreground uppercase mb-1">
             Before ({before.length})
           </p>
           <div className="flex gap-2 overflow-x-auto">
@@ -43,7 +56,7 @@ export function PhotoGallery({ jobId }: { jobId: string }) {
       )}
       {after.length > 0 && (
         <div>
-          <p className="text-xs font-medium text-gray-500 uppercase mb-1">
+          <p className="text-xs font-medium text-muted-foreground uppercase mb-1">
             After ({after.length})
           </p>
           <div className="flex gap-2 overflow-x-auto">
@@ -64,7 +77,7 @@ function PhotoThumb({ photo }: { photo: Photo }) {
       <img
         src={photo.url}
         alt={`${photo.type} photo`}
-        className="w-20 h-20 object-cover rounded-md border border-gray-200"
+        className="w-20 h-20 object-cover rounded-md border border-border"
       />
     </a>
   );

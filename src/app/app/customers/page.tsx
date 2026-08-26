@@ -2,6 +2,10 @@ import { resolveAuth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { tenantScope } from "@/lib/tenant";
 import Link from "next/link";
+import { Plus, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyState } from "@/components/empty-state";
 
 export const dynamic = "force-dynamic";
 
@@ -31,38 +35,44 @@ export default async function CustomersPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Customers</h1>
-        <Link
-          href="/app/customers/new"
-          className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-        >
-          New Customer
-        </Link>
+        <Button asChild>
+          <Link href="/app/customers/new">
+            <Plus className="h-4 w-4 mr-1" />
+            New Customer
+          </Link>
+        </Button>
       </div>
 
       {customers.length === 0 ? (
-        <p className="text-gray-500">No customers yet.</p>
+        <EmptyState
+          icon={Users}
+          title="No customers yet"
+          description="Add your first customer to get started."
+          actionLabel="Add Customer"
+          actionHref="/app/customers/new"
+        />
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jobs</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+        <div className="rounded-lg border border-border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead className="text-right">Jobs</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {customers.map((c) => (
-                <tr key={c.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{c.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{c.phone || "-"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{c.email || "-"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{c._count.jobs}</td>
-                </tr>
+                <TableRow key={c.id}>
+                  <TableCell className="font-medium">{c.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.phone || "-"}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.email || "-"}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{c._count.jobs}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

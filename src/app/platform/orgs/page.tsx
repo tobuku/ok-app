@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { showSuccess, showError } from "@/lib/toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Plus } from "lucide-react";
 
 type Org = {
   id: string;
@@ -14,13 +23,20 @@ type Org = {
   _count: { users: number; jobs: number };
 };
 
+const STATUS_VARIANT: Record<string, "info" | "success" | "warning" | "destructive" | "secondary"> = {
+  TRIALING: "info",
+  ACTIVE: "success",
+  PAST_DUE: "warning",
+  SUSPENDED: "destructive",
+  CANCELED: "secondary",
+};
+
 export default function OrgsPage() {
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: "", slug: "", adminEmail: "", adminName: "", timezone: "Pacific/Honolulu" });
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   function loadOrgs() {
     setLoading(true);
@@ -35,7 +51,6 @@ export default function OrgsPage() {
   async function createOrg() {
     if (!form.name.trim() || !form.slug.trim() || !form.adminEmail.trim() || !form.adminName.trim()) return;
     setSaving(true);
-    setMessage(null);
     try {
       const res = await fetch("/api/platform/orgs", {
         method: "POST",
@@ -44,16 +59,15 @@ export default function OrgsPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        setMessage(data.error || "Failed");
+        showError(data.error || "Failed");
       } else {
         setShowCreate(false);
         setForm({ name: "", slug: "", adminEmail: "", adminName: "", timezone: "Pacific/Honolulu" });
-        setMessage("Organization created. Invite email sent.");
+        showSuccess("Organization created. Invite email sent.");
         loadOrgs();
-        setTimeout(() => setMessage(null), 4000);
       }
     } catch {
-      setMessage("Network error");
+      showError("Network error");
     } finally {
       setSaving(false);
     }
@@ -73,142 +87,116 @@ export default function OrgsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-white">Organizations</h1>
-        <button
-          onClick={() => setShowCreate(!showCreate)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-        >
-          {showCreate ? "Cancel" : "Create Organization"}
-        </button>
+        <h1 className="text-2xl font-bold">Organizations</h1>
+        <Button onClick={() => setShowCreate(!showCreate)} variant={showCreate ? "outline" : "default"}>
+          {showCreate ? "Cancel" : (<><Plus className="h-4 w-4 mr-1" /> Create Organization</>)}
+        </Button>
       </div>
-
-      {message && (
-        <div className={`mb-4 p-3 rounded-lg text-sm ${
-          message.includes("error") || message.includes("Failed")
-            ? "bg-red-900/50 text-red-300"
-            : "bg-green-900/50 text-green-300"
-        }`}>
-          {message}
-        </div>
-      )}
 
       {/* Create form */}
       {showCreate && (
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 mb-6 space-y-3">
-          <h2 className="text-sm font-medium text-gray-300">New Organization</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Company Name *</label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm text-white"
-              />
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-sm">New Organization</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Company Name *</Label>
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Slug *</Label>
+                <Input
+                  value={form.slug}
+                  onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Admin Name *</Label>
+                <Input
+                  value={form.adminName}
+                  onChange={(e) => setForm({ ...form, adminName: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Admin Email *</Label>
+                <Input
+                  type="email"
+                  value={form.adminEmail}
+                  onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Slug *</label>
-              <input
-                type="text"
-                value={form.slug}
-                onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Admin Name *</label>
-              <input
-                type="text"
-                value={form.adminName}
-                onChange={(e) => setForm({ ...form, adminName: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Admin Email *</label>
-              <input
-                type="email"
-                value={form.adminEmail}
-                onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm text-white"
-              />
-            </div>
-          </div>
-          <button
-            onClick={createOrg}
-            disabled={saving || !form.name.trim() || !form.slug.trim() || !form.adminEmail.trim() || !form.adminName.trim()}
-            className="px-4 py-1.5 bg-blue-600 text-white rounded text-sm font-medium disabled:bg-gray-600 hover:bg-blue-700"
-          >
-            {saving ? "Creating..." : "Create & Send Invite"}
-          </button>
-        </div>
+            <Button
+              onClick={createOrg}
+              disabled={saving || !form.name.trim() || !form.slug.trim() || !form.adminEmail.trim() || !form.adminName.trim()}
+            >
+              {saving ? "Creating..." : "Create & Send Invite"}
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* Org list */}
       {loading ? (
-        <p className="text-gray-400">Loading...</p>
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 rounded-md" />
+          ))}
+        </div>
       ) : (
-        <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-700">
-            <thead className="bg-gray-750">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Plan</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Users</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Jobs</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700">
+        <div className="rounded-lg border border-border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Plan</TableHead>
+                <TableHead className="text-right">Users</TableHead>
+                <TableHead className="text-right">Jobs</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {orgs.map((org) => (
-                <tr key={org.id} className="hover:bg-gray-750">
-                  <td className="px-4 py-3">
-                    <Link href={`/platform/orgs/${org.id}`} className="text-sm font-medium text-blue-400 hover:text-blue-300">
+                <TableRow key={org.id}>
+                  <TableCell>
+                    <Link href={`/platform/orgs/${org.id}`} className="text-sm font-medium text-primary hover:underline">
                       {org.name}
                     </Link>
-                    <p className="text-xs text-gray-500">{org.slug}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={org.status} />
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-400">
+                    <p className="text-xs text-muted-foreground">{org.slug}</p>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={STATUS_VARIANT[org.status] || "secondary"}>
+                      {org.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
                     {org.subscription?.plan?.name ?? "None"}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-400 text-right">{org._count.users}</td>
-                  <td className="px-4 py-3 text-sm text-gray-400 text-right">{org._count.jobs}</td>
-                  <td className="px-4 py-3 text-sm text-right">
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">{org._count.users}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{org._count.jobs}</TableCell>
+                  <TableCell className="text-right">
                     {org.status === "SUSPENDED" ? (
-                      <button onClick={() => updateStatus(org.id, "ACTIVE")} className="text-xs text-green-400 hover:text-green-300">
+                      <Button variant="ghost" size="sm" onClick={() => updateStatus(org.id, "ACTIVE")} className="text-green-400 hover:text-green-300">
                         Reactivate
-                      </button>
+                      </Button>
                     ) : org.status !== "CANCELED" ? (
-                      <button onClick={() => updateStatus(org.id, "SUSPENDED")} className="text-xs text-red-400 hover:text-red-300">
+                      <Button variant="ghost" size="sm" onClick={() => updateStatus(org.id, "SUSPENDED")} className="text-destructive">
                         Suspend
-                      </button>
+                      </Button>
                     ) : null}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    TRIALING: "bg-blue-900 text-blue-300",
-    ACTIVE: "bg-green-900 text-green-300",
-    PAST_DUE: "bg-yellow-900 text-yellow-300",
-    SUSPENDED: "bg-red-900 text-red-300",
-    CANCELED: "bg-gray-700 text-gray-400",
-  };
-  return (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[status] || "bg-gray-700 text-gray-400"}`}>
-      {status}
-    </span>
   );
 }

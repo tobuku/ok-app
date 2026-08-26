@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { showError } from "@/lib/toast";
 
 export function JobStatusButton({
   jobId,
@@ -18,7 +20,7 @@ export function JobStatusButton({
   const isCancel = newStatus === "CANCELED";
 
   async function handleClick() {
-    if (isCancel && !confirm("Cancel this job?")) return;
+    if (isCancel && !window.confirm("Cancel this job?")) return;
 
     setLoading(true);
     const res = await fetch(`/api/org/jobs/${jobId}/status`, {
@@ -32,7 +34,7 @@ export function JobStatusButton({
 
     if (!res.ok) {
       const data = await res.json();
-      alert(data.error || "Failed to update status");
+      showError(data.error || "Failed to update status");
     }
 
     setLoading(false);
@@ -40,16 +42,13 @@ export function JobStatusButton({
   }
 
   return (
-    <button
+    <Button
+      variant={isCancel ? "destructive" : "outline"}
+      size="sm"
       onClick={handleClick}
       disabled={loading}
-      className={`px-3 py-1.5 text-sm rounded-md font-medium disabled:opacity-50 ${
-        isCancel
-          ? "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
-          : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
-      }`}
     >
       {loading ? "..." : label}
-    </button>
+    </Button>
   );
 }

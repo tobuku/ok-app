@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { formatCents } from "@/lib/format";
+import { showError } from "@/lib/toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type PlanOption = {
   id: string;
@@ -32,7 +35,6 @@ export function BillingManager({
   plans: PlanOption[];
 }) {
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   const trialDaysLeft = trialEndsAt
     ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
@@ -40,7 +42,6 @@ export function BillingManager({
 
   async function subscribe(planId: string) {
     setLoading(true);
-    setMessage(null);
     try {
       const res = await fetch("/api/org/billing/checkout", {
         method: "POST",
@@ -49,12 +50,12 @@ export function BillingManager({
       });
       const data = await res.json();
       if (!res.ok) {
-        setMessage(data.error || "Failed");
+        showError(data.error || "Failed");
       } else if (data.url) {
         window.location.href = data.url;
       }
     } catch {
-      setMessage("Network error");
+      showError("Network error");
     } finally {
       setLoading(false);
     }
@@ -62,17 +63,16 @@ export function BillingManager({
 
   async function openPortal() {
     setLoading(true);
-    setMessage(null);
     try {
       const res = await fetch("/api/org/billing/portal", { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
-        setMessage(data.error || "Failed");
+        showError(data.error || "Failed");
       } else if (data.url) {
         window.location.href = data.url;
       }
     } catch {
-      setMessage("Network error");
+      showError("Network error");
     } finally {
       setLoading(false);
     }
@@ -82,80 +82,94 @@ export function BillingManager({
     <div className="space-y-6">
       {/* Trial banner */}
       {orgStatus === "TRIALING" && trialDaysLeft !== null && (
-        <div className={`p-4 rounded-lg text-sm ${
+        <Card className={
           trialDaysLeft <= 2
-            ? "bg-red-50 border border-red-200 text-red-800"
-            : "bg-blue-50 border border-blue-200 text-blue-800"
-        }`}>
-          {trialDaysLeft === 0
-            ? "Your trial expires today. Subscribe to keep using the platform."
-            : `${trialDaysLeft} day${trialDaysLeft !== 1 ? "s" : ""} left in your free trial.`
-          }
-        </div>
+            ? "border-destructive bg-destructive/10"
+            : "border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30"
+        }>
+          <CardContent className="py-4 text-sm">
+            {trialDaysLeft === 0
+              ? "Your trial expires today. Subscribe to keep using the platform."
+              : `${trialDaysLeft} day${trialDaysLeft !== 1 ? "s" : ""} left in your free trial.`
+            }
+          </CardContent>
+        </Card>
       )}
 
       {orgStatus === "PAST_DUE" && (
-        <div className="p-4 rounded-lg text-sm bg-yellow-50 border border-yellow-200 text-yellow-800">
-          Your subscription is past due. The account is in read-only mode until payment is resolved.
-        </div>
+        <Card className="border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-950/30">
+          <CardContent className="py-4 text-sm text-yellow-800 dark:text-yellow-400">
+            Your subscription is past due. The account is in read-only mode until payment is resolved.
+          </CardContent>
+        </Card>
       )}
 
       {orgStatus === "SUSPENDED" && (
-        <div className="p-4 rounded-lg text-sm bg-red-50 border border-red-200 text-red-800">
-          Your account is suspended. Contact support to resolve.
-        </div>
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="py-4 text-sm text-destructive">
+            Your account is suspended. Contact support to resolve.
+          </CardContent>
+        </Card>
       )}
 
       {/* Current subscription */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Current Plan</h2>
-        {subscription ? (
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Plan</span>
-              <span className="font-medium text-gray-900">{subscription.planName}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Status</span>
-              <span className="font-medium text-gray-900 capitalize">{subscription.status}</span>
-            </div>
-            {subscription.currentPeriodEnd && (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Current Plan</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {subscription ? (
+            <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-gray-600">Current period ends</span>
-                <span className="text-gray-900">
-                  {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
-                </span>
+                <span className="text-muted-foreground">Plan</span>
+                <span className="font-medium text-foreground">{subscription.planName}</span>
               </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-gray-500 text-sm">No active subscription.</p>
-        )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Status</span>
+                <span className="font-medium text-foreground capitalize">{subscription.status}</span>
+              </div>
+              {subscription.currentPeriodEnd && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Current period ends</span>
+                  <span className="text-foreground">
+                    {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No active subscription.</p>
+          )}
 
-        {hasStripeCustomer && (
-          <button
-            onClick={openPortal}
-            disabled={loading}
-            className="mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded text-sm font-medium hover:bg-gray-200 disabled:opacity-50"
-          >
-            Manage Billing
-          </button>
-        )}
-      </div>
+          {hasStripeCustomer && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={openPortal}
+              disabled={loading}
+              className="mt-4"
+            >
+              Manage Billing
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Available plans */}
       {(!subscription || subscription.status === "canceled") && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-sm font-medium text-gray-700 mb-4">Choose a Plan</h2>
-          <div className="space-y-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Choose a Plan</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
             {plans.map((plan) => (
               <div
                 key={plan.id}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                className="flex items-center justify-between p-4 border border-border rounded-lg"
               >
                 <div>
-                  <p className="font-medium text-gray-900">{plan.name}</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="font-medium text-foreground">{plan.name}</p>
+                  <p className="text-sm text-muted-foreground">
                     {plan.priceCentsMonthly === 0
                       ? "Custom pricing"
                       : `${formatCents(plan.priceCentsMonthly)}/month`}
@@ -164,25 +178,23 @@ export function BillingManager({
                   </p>
                 </div>
                 {plan.hasStripePrice ? (
-                  <button
+                  <Button
                     onClick={() => subscribe(plan.id)}
                     disabled={loading}
-                    className="px-4 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                    size="sm"
                   >
                     Subscribe
-                  </button>
+                  </Button>
                 ) : plan.priceCentsMonthly === 0 ? (
-                  <span className="text-xs text-gray-500">Contact us</span>
+                  <span className="text-xs text-muted-foreground">Contact us</span>
                 ) : (
-                  <span className="text-xs text-gray-400">Not available</span>
+                  <span className="text-xs text-muted-foreground">Not available</span>
                 )}
               </div>
             ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
-
-      {message && <p className="text-sm text-red-600">{message}</p>}
     </div>
   );
 }

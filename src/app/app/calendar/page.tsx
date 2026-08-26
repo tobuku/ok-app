@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 import { tenantScope } from "@/lib/tenant";
 import Link from "next/link";
 import type { JobStatus } from "@prisma/client";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +20,12 @@ type CalendarJob = {
   assignedTo: { name: string } | null;
 };
 
-const STATUS_COLORS: Partial<Record<JobStatus, string>> = {
-  SCHEDULED: "bg-blue-100 text-blue-800",
-  EN_ROUTE: "bg-yellow-100 text-yellow-800",
-  ON_SITE: "bg-orange-100 text-orange-800",
-  IN_PROGRESS: "bg-purple-100 text-purple-800",
-  COMPLETED: "bg-green-100 text-green-800",
+const STATUS_VARIANT: Partial<Record<JobStatus, "info" | "warning" | "success" | "default">> = {
+  SCHEDULED: "info",
+  EN_ROUTE: "warning",
+  ON_SITE: "warning",
+  IN_PROGRESS: "info",
+  COMPLETED: "success",
 };
 
 export default async function CalendarPage({
@@ -36,7 +41,6 @@ export default async function CalendarPage({
 
   const { week: weekParam } = await searchParams;
 
-  // Calculate week start (Monday)
   const today = new Date();
   let weekStart: Date;
   if (weekParam) {
@@ -72,7 +76,6 @@ export default async function CalendarPage({
     orderBy: { scheduledDate: "asc" },
   })) as CalendarJob[];
 
-  // Build 7 days
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
     d.setDate(d.getDate() + i);
@@ -88,14 +91,13 @@ export default async function CalendarPage({
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Calendar</h1>
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/app/calendar?week=${fmt(prevWeek)}`}
-            className="text-sm text-gray-600 hover:text-gray-900 px-2 py-1 border rounded"
-          >
-            Prev
-          </Link>
-          <span className="text-sm font-medium">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" asChild>
+            <Link href={`/app/calendar?week=${fmt(prevWeek)}`}>
+              <ChevronLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <span className="text-sm font-medium min-w-[180px] text-center">
             {weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} -{" "}
             {new Date(weekEnd.getTime() - 1).toLocaleDateString("en-US", {
               month: "short",
@@ -103,46 +105,55 @@ export default async function CalendarPage({
               year: "numeric",
             })}
           </span>
-          <Link
-            href={`/app/calendar?week=${fmt(nextWeek)}`}
-            className="text-sm text-gray-600 hover:text-gray-900 px-2 py-1 border rounded"
-          >
-            Next
-          </Link>
+          <Button variant="outline" size="icon" asChild>
+            <Link href={`/app/calendar?week=${fmt(nextWeek)}`}>
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden">
-        {days.map((day) => {
-          const isToday = fmt(day) === fmt(today);
-          const dayJobs = jobsForDay(day);
+      <Card className="overflow-hidden">
+        <div className="grid grid-cols-7 divide-x divide-border">
+          {days.map((day) => {
+            const isToday = fmt(day) === fmt(today);
+            const dayJobs = jobsForDay(day);
 
-          return (
-            <div
-              key={fmt(day)}
-              className={`bg-white min-h-[160px] p-2 ${isToday ? "ring-2 ring-blue-500 ring-inset" : ""}`}
-            >
-              <div className={`text-xs font-medium mb-2 ${isToday ? "text-blue-600" : "text-gray-500"}`}>
-                {day.toLocaleDateString("en-US", { weekday: "short", day: "numeric" })}
+            return (
+              <div
+                key={fmt(day)}
+                className={cn(
+                  "min-h-[160px] p-2",
+                  isToday && "bg-accent/50"
+                )}
+              >
+                <div className={cn(
+                  "text-xs font-medium mb-2",
+                  isToday ? "text-foreground" : "text-muted-foreground"
+                )}>
+                  {day.toLocaleDateString("en-US", { weekday: "short", day: "numeric" })}
+                </div>
+                <div className="space-y-1">
+                  {dayJobs.map((j) => (
+                    <Link
+                      key={j.id}
+                      href={`/app/jobs/${j.id}`}
+                      className="block"
+                    >
+                      <Badge
+                        variant={STATUS_VARIANT[j.status] || "secondary"}
+                        className="w-full justify-start truncate text-xs font-normal cursor-pointer"
+                      >
+                        #{j.jobNumber} {j.customer.name}
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-1">
-                {dayJobs.map((j) => (
-                  <Link
-                    key={j.id}
-                    href={`/app/jobs/${j.id}`}
-                    className={`block text-xs rounded px-1.5 py-1 truncate ${
-                      STATUS_COLORS[j.status] || "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    #{j.jobNumber} {j.customer.name}
-                    {j.assignedTo ? ` - ${j.assignedTo.name}` : ""}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </Card>
     </div>
   );
 }
