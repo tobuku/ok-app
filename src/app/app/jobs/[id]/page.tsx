@@ -7,7 +7,7 @@ import { canTransition } from "@/lib/status";
 import { getSignedUrls } from "@/lib/storage";
 import Link from "next/link";
 import type { JobStatus } from "@prisma/client";
-import { ArrowLeft, Clock, MapPin, User, FileText, Camera, CreditCard, RotateCcw } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, User, FileText, Camera, CreditCard, RotateCcw, AlertTriangle, Pencil } from "lucide-react";
 import { JobStatusButton } from "./status-button";
 import { JobEditForm } from "./edit-form";
 import { Button } from "@/components/ui/button";
@@ -174,6 +174,38 @@ export default async function JobDetailPage({
               )}
             </CardContent>
           </Card>
+
+          {/* Unassigned warning */}
+          {!job.assignedToId && !["COMPLETED", "CANCELED"].includes(job.status) && (
+            <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <AlertTriangle className="h-4 w-4 text-yellow-600 shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-yellow-800 dark:text-yellow-400">No leadman assigned</p>
+                <p className="text-yellow-700 dark:text-yellow-500">This job won&apos;t appear on any leadman&apos;s device until you assign one below.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Job — Dispatcher/Admin */}
+          {(user.role === "DISPATCHER" || user.role === "ORG_ADMIN") && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Pencil className="h-4 w-4" />
+                  Edit Job
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <JobEditForm
+                  jobId={job.id}
+                  currentAssignedToId={job.assignedToId}
+                  currentScheduledDate={job.scheduledDate}
+                  currentNotes={job.notes}
+                  leadmen={leadmen}
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Photos */}
           {photos.length > 0 && (
@@ -347,23 +379,6 @@ export default async function JobDetailPage({
         </Card>
       )}
 
-      {/* Edit form for Dispatcher/Admin */}
-      {(user.role === "DISPATCHER" || user.role === "ORG_ADMIN") && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold">Edit Job</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <JobEditForm
-              jobId={job.id}
-              currentAssignedToId={job.assignedToId}
-              currentScheduledDate={job.scheduledDate}
-              currentNotes={job.notes}
-              leadmen={leadmen}
-            />
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
