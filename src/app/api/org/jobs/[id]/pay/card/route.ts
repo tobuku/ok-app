@@ -1,7 +1,7 @@
 /**
  * POST /api/org/jobs/:id/pay/card — Create a Stripe Checkout Session
  * on the tenant's connected Stripe account.
- * Leadman or Org Admin. Job must be COMPLETED.
+ * Leadman or Org Admin. Job must be ACCEPTED (pay before loading).
  */
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrgUser } from "@/lib/auth";
@@ -35,7 +35,7 @@ export async function POST(
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  if (job.status !== "COMPLETED") {
+  if (job.status !== "ACCEPTED") {
     return NextResponse.json(
       { error: `Cannot collect payment in status ${job.status}` },
       { status: 400 }

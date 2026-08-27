@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ClipboardList, User } from "lucide-react";
+import { ClipboardList, History, User } from "lucide-react";
 
 const tabs = [
   { href: "/m", label: "Today", icon: ClipboardList },
+  { href: "/m/history", label: "History", icon: History },
   { href: "/m/profile", label: "Profile", icon: User },
 ];
 

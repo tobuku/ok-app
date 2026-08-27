@@ -77,10 +77,18 @@ export const mobileTourSteps: DriveStep[] = [
     },
   },
   {
-    element: "nav.fixed",
+    element: 'a[href="/m/history"]',
     popover: {
-      title: "Navigation",
-      description: "Switch between Today's jobs and your Profile.",
+      title: "Job History",
+      description: "View past jobs and add follow-up notes.",
+      side: "top",
+    },
+  },
+  {
+    element: 'a[href="/m/profile"]',
+    popover: {
+      title: "Profile & Summary",
+      description: "Your daily stats and profile settings.",
       side: "top",
     },
   },

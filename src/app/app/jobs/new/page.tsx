@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
@@ -9,18 +9,20 @@ type User = { id: string; name: string; role: string };
 
 export default function NewJobPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [leadmen, setLeadmen] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const [customerId, setCustomerId] = useState("");
-  const [addressId, setAddressId] = useState("");
+  // Pre-fill from query params (Repeat Customer Quick-Book #5)
+  const [customerId, setCustomerId] = useState(searchParams.get("customerId") ?? "");
+  const [addressId, setAddressId] = useState(searchParams.get("addressId") ?? "");
   const [scheduledDate, setScheduledDate] = useState("");
-  const [assignedToId, setAssignedToId] = useState("");
-  const [notes, setNotes] = useState("");
-  const [source, setSource] = useState("PHONE");
+  const [assignedToId, setAssignedToId] = useState(searchParams.get("assignedToId") ?? "");
+  const [notes, setNotes] = useState(searchParams.get("notes") ?? "");
+  const [source, setSource] = useState(searchParams.get("source") ?? "PHONE");
 
   useEffect(() => {
     Promise.all([

@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrgUser } from "@/lib/auth";
 import { tenantScope } from "@/lib/tenant";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const userOrRes = await requireOrgUser(["LEADMAN", "DISPATCHER", "ORG_ADMIN"]);
@@ -29,7 +30,28 @@ export async function GET() {
     orderBy: { sortOrder: "asc" },
   });
 
-  return NextResponse.json({ priceBook, items });
+  // Get usage counts for each price item (last 90 days) for smart sorting (#10)
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const usageCounts = await prisma.quoteLine.groupBy({
+    by: ["priceItemId"],
+    where: {
+      orgId: user.orgId,
+      priceItemId: { not: null },
+      quote: { createdAt: { gte: ninetyDaysAgo } },
+    },
+    _count: { id: true },
+  });
+  const usageMap: Record<string, number> = {};
+  for (const u of usageCounts) {
+    if (u.priceItemId) usageMap[u.priceItemId] = u._count.id;
+  }
+
+  const itemsWithUsage = (items as Array<Record<string, unknown>>).map((item) => ({
+    ...item,
+    usageCount: usageMap[(item as { id: string }).id] ?? 0,
+  }));
+
+  return NextResponse.json({ priceBook, items: itemsWithUsage });
 }
 
 export async function PATCH(request: NextRequest) {

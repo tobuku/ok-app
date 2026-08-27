@@ -1,7 +1,7 @@
 /**
  * POST /api/org/jobs/:id/pay/cash — Record a cash payment
- * Leadman or Org Admin. Transitions job to PAID.
- * Creates Payment record + sends white-labeled receipt email.
+ * Leadman or Org Admin. Job must be ACCEPTED (pay before loading).
+ * Transitions job to PAID. Creates Payment record + sends receipt email.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrgUser } from "@/lib/auth";

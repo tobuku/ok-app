@@ -35,16 +35,13 @@ describe("Job Status Transitions", () => {
     expect(canTransition("DECLINED", "QUOTED")).toBe(true);
   });
 
-  it("ACCEPTED → IN_PROGRESS is valid", () => {
-    expect(canTransition("ACCEPTED", "IN_PROGRESS")).toBe(true);
+  // New flow: ACCEPTED → PAID (via payment) → IN_PROGRESS → COMPLETED
+  it("PAID → IN_PROGRESS is valid", () => {
+    expect(canTransition("PAID", "IN_PROGRESS")).toBe(true);
   });
 
   it("IN_PROGRESS → COMPLETED is valid", () => {
     expect(canTransition("IN_PROGRESS", "COMPLETED")).toBe(true);
-  });
-
-  it("COMPLETED → PAID is valid", () => {
-    expect(canTransition("COMPLETED", "PAID")).toBe(true);
   });
 
   // Cancellation from any active status
@@ -59,9 +56,9 @@ describe("Job Status Transitions", () => {
   });
 
   // Terminal states
-  it("PAID cannot transition anywhere", () => {
-    expect(canTransition("PAID", "COMPLETED")).toBe(false);
-    expect(canTransition("PAID", "CANCELED")).toBe(false);
+  it("COMPLETED cannot transition anywhere", () => {
+    expect(canTransition("COMPLETED", "PAID")).toBe(false);
+    expect(canTransition("COMPLETED", "CANCELED")).toBe(false);
   });
 
   it("CANCELED cannot transition anywhere", () => {
@@ -84,6 +81,14 @@ describe("Job Status Transitions", () => {
 
   it("cannot go backwards: COMPLETED → IN_PROGRESS", () => {
     expect(canTransition("COMPLETED", "IN_PROGRESS")).toBe(false);
+  });
+
+  it("ACCEPTED does not go directly to IN_PROGRESS (must pay first)", () => {
+    expect(canTransition("ACCEPTED", "IN_PROGRESS")).toBe(false);
+  });
+
+  it("ACCEPTED → PAID is valid (pay before loading)", () => {
+    expect(canTransition("ACCEPTED", "PAID")).toBe(true);
   });
 
   // assertTransition throws

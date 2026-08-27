@@ -21,6 +21,8 @@ const TENANT_TABLES = [
   "truck",
   "dumpSite",
   "dumpRun",
+  "jobNote",
+  "addressNote",
 ] as const;
 
 type TenantTable = (typeof TENANT_TABLES)[number];

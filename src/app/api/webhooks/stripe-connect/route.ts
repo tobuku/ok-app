@@ -81,12 +81,12 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Transition job to PAID
+      // Transition job to PAID (payment before loading — job is in ACCEPTED status)
       const job = await tx.job.findUnique({
         where: { id: jobId },
         select: { status: true },
       });
-      if (job && job.status === "COMPLETED") {
+      if (job && job.status === "ACCEPTED") {
         await tx.job.update({
           where: { id: jobId },
           data: { status: "PAID" },

@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { showError, showSuccess } from "@/lib/toast";
+import { PhotoAnnotate } from "./photo-annotate";
 
 export function PhotoCapture({
   jobId,
@@ -12,16 +13,18 @@ export function PhotoCapture({
   type: "before" | "after";
 }) {
   const [uploading, setUploading] = useState(false);
+  const [annotateFile, setAnnotateFile] = useState<File | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function handleFiles(fileList: FileList | null) {
-    if (!fileList || fileList.length === 0) return;
+  async function uploadFiles(files: File[]) {
+    if (files.length === 0) return;
     setUploading(true);
 
     const formData = new FormData();
     formData.append("type", type);
-    for (let i = 0; i < fileList.length; i++) {
-      formData.append("files", fileList[i]);
+    for (const file of files) {
+      formData.append("files", file);
     }
 
     try {
@@ -48,6 +51,38 @@ export function PhotoCapture({
     }
   }
 
+  function handleFiles(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    const files = Array.from(fileList);
+
+    if (files.length === 1) {
+      // Single photo — offer annotation
+      setAnnotateFile(files[0]);
+      setPendingFiles([]);
+    } else {
+      // Multiple photos — upload directly
+      uploadFiles(files);
+    }
+  }
+
+  function handleAnnotateSave(blob: Blob) {
+    const file = new File([blob], annotateFile?.name ?? "photo.jpg", {
+      type: "image/jpeg",
+    });
+    setAnnotateFile(null);
+    uploadFiles([file, ...pendingFiles]);
+    setPendingFiles([]);
+  }
+
+  function handleAnnotateCancel() {
+    // Upload original without annotation
+    if (annotateFile) {
+      uploadFiles([annotateFile, ...pendingFiles]);
+    }
+    setAnnotateFile(null);
+    setPendingFiles([]);
+  }
+
   return (
     <div>
       <input
@@ -71,6 +106,14 @@ export function PhotoCapture({
           ? "Uploading..."
           : `Take ${type === "before" ? "Before" : "After"} Photos`}
       </Button>
+
+      {annotateFile && (
+        <PhotoAnnotate
+          imageFile={annotateFile}
+          onSave={handleAnnotateSave}
+          onCancel={handleAnnotateCancel}
+        />
+      )}
     </div>
   );
 }

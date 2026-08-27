@@ -48,6 +48,8 @@ model Organization {
   dumpSites     DumpSite[]
   dumpRuns      DumpRun[]
   auditLogs     AuditLog[]
+  jobNotes      JobNote[]
+  addressNotes  AddressNote[]
 }
 
 model Plan {
@@ -104,6 +106,8 @@ model User {
   createdJobs   Job[]        @relation("CreatedBy")
   photosTaken   Photo[]
   paymentsRecv  Payment[]
+  jobNotes      JobNote[]
+  addressNotes  AddressNote[]
 
   @@index([orgId])
   @@index([authUid])
@@ -167,6 +171,7 @@ model Address {
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
   jobs         Job[]
+  addressNotes AddressNote[]
 
   @@index([orgId])
 }
@@ -225,6 +230,8 @@ model Job {
   quotes       Quote[]
   payments     Payment[]
   dumpRunJobs  DumpRunJob[]
+  jobNotes     JobNote[]
+  addressNotes AddressNote[] @relation("AddressNoteJob")
 
   @@unique([orgId, jobNumber])
   @@index([orgId])
@@ -466,4 +473,38 @@ model AuditLog {
   @@index([orgId])
   @@index([orgId, entity])
   @@index([createdAt])
+}
+
+model JobNote {
+  id          String   @id @default(cuid())
+  orgId       String
+  jobId       String
+  text        String
+  createdById String
+  createdAt   DateTime @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  job          Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation(fields: [createdById], references: [id])
+
+  @@index([orgId])
+  @@index([jobId])
+}
+
+model AddressNote {
+  id          String   @id @default(cuid())
+  orgId       String
+  addressId   String
+  jobId       String?
+  note        String
+  createdById String
+  createdAt   DateTime @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  address      Address      @relation(fields: [addressId], references: [id], onDelete: Cascade)
+  job          Job?         @relation("AddressNoteJob", fields: [jobId], references: [id])
+  createdBy    User         @relation(fields: [createdById], references: [id])
+
+  @@index([orgId])
+  @@index([addressId])
 }

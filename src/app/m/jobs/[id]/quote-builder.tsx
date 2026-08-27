@@ -15,6 +15,7 @@ type PriceItem = {
   fraction: number | null;
   amountCents: number;
   sortOrder: number;
+  usageCount?: number;
 };
 
 type QuoteLine = {
@@ -55,7 +56,9 @@ export function QuoteBuilder({
   if (!canQuote) return null;
 
   const loadFractions = items.filter((i) => i.kind === "LOAD_FRACTION");
-  const addons = items.filter((i) => i.kind === "ADDON" || i.kind === "FEE");
+  const addons = items
+    .filter((i) => i.kind === "ADDON" || i.kind === "FEE")
+    .sort((a, b) => (b.usageCount ?? 0) - (a.usageCount ?? 0) || a.sortOrder - b.sortOrder);
 
   const subtotalCents = lines.reduce((s, l) => s + l.qty * l.unitCents, 0);
   const taxableAmount = subtotalCents - discountCents;

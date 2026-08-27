@@ -7,7 +7,7 @@ import { canTransition } from "@/lib/status";
 import { getSignedUrls } from "@/lib/storage";
 import Link from "next/link";
 import type { JobStatus } from "@prisma/client";
-import { ArrowLeft, Clock, MapPin, User, FileText, Camera, CreditCard } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, User, FileText, Camera, CreditCard, RotateCcw } from "lucide-react";
 import { JobStatusButton } from "./status-button";
 import { JobEditForm } from "./edit-form";
 import { Button } from "@/components/ui/button";
@@ -330,6 +330,22 @@ export default async function JobDetailPage({
           )}
         </div>
       </div>
+
+      {/* Rebook button for completed/paid/canceled jobs (#5) */}
+      {["COMPLETED", "PAID", "CANCELED"].includes(job.status) && (
+        <Card className="mt-6">
+          <CardContent className="pt-6">
+            <Button asChild variant="outline" className="w-full">
+              <Link
+                href={`/app/jobs/new?customerId=${job.customerId}&addressId=${job.addressId ?? ""}&assignedToId=${job.assignedToId ?? ""}&source=REPEAT`}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Rebook This Customer
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Edit form for Dispatcher/Admin */}
       {(user.role === "DISPATCHER" || user.role === "ORG_ADMIN") && (
