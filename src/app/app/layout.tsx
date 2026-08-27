@@ -7,6 +7,8 @@ import { AppMobileNav } from "@/components/app-mobile-nav";
 import { UserNav } from "@/components/user-nav";
 import { CommandSearch } from "@/components/command-search";
 import { Badge } from "@/components/ui/badge";
+import { OnboardingTour } from "@/components/onboarding-tour";
+import { appTourSteps } from "@/lib/tour-definitions";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +87,7 @@ export default async function AppLayout({
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
           {children}
         </main>
+        <OnboardingTour tourId="app" steps={appTourSteps} />
       </div>
     </div>
   );

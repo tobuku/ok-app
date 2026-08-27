@@ -1,6 +1,8 @@
 import { resolveAuth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { PlatformSidebar } from "@/components/platform-sidebar";
+import { OnboardingTour } from "@/components/onboarding-tour";
+import { platformTourSteps } from "@/lib/tour-definitions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,7 @@ export default async function PlatformLayout({
       <main className="flex-1 overflow-y-auto p-6">
         {children}
       </main>
+      <OnboardingTour tourId="platform" steps={platformTourSteps} />
     </div>
   );
 }

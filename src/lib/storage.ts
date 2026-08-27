@@ -16,6 +16,11 @@ export function storageKey(
   return `org/${orgId}/jobs/${jobId}/${type}_${Date.now()}_${filename}`;
 }
 
+/** Build an org-scoped signature storage key */
+export function signatureKey(orgId: string, quoteId: string): string {
+  return `org/${orgId}/signatures/${quoteId}.png`;
+}
+
 /** Upload a file buffer to Supabase Storage */
 export async function uploadPhoto(
   key: string,

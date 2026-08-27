@@ -54,6 +54,7 @@ export default async function PresentQuotePage({
     discountReason: string | null;
     taxCents: number;
     totalCents: number;
+    signatureKey: string | null;
   }>("quote", {
     where: quoteWhere,
     orderBy: { createdAt: "desc" },
@@ -81,6 +82,11 @@ export default async function PresentQuotePage({
   }
 
   const isPresented = quoteStatus === "PRESENTED";
+
+  let signatureUrl: string | null = null;
+  if (quoteStatus === "ACCEPTED" && quote.signatureKey) {
+    signatureUrl = await getSignedUrl(quote.signatureKey);
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-start justify-center p-4">
@@ -150,10 +156,22 @@ export default async function PresentQuotePage({
           {isPresented ? (
             <AcceptDeclineButtons quoteId={quote.id} jobId={jobId} />
           ) : quoteStatus === "ACCEPTED" ? (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
-              <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-1" />
-              <p className="text-green-800 dark:text-green-400 font-medium text-lg">Quote Accepted</p>
-              <p className="text-green-600 dark:text-green-500 text-sm mt-1">Thank you</p>
+            <div className="space-y-3">
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
+                <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-1" />
+                <p className="text-green-800 dark:text-green-400 font-medium text-lg">Quote Accepted</p>
+                <p className="text-green-600 dark:text-green-500 text-sm mt-1">Thank you</p>
+              </div>
+              {signatureUrl && (
+                <div className="border border-border rounded-lg p-4 text-center">
+                  <p className="text-xs text-muted-foreground mb-2">Customer Signature</p>
+                  <img
+                    src={signatureUrl}
+                    alt="Customer Signature"
+                    className="mx-auto max-h-24 object-contain"
+                  />
+                </div>
+              )}
             </div>
           ) : quoteStatus === "DECLINED" ? (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">

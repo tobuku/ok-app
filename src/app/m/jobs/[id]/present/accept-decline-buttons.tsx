@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { showError } from "@/lib/toast";
+import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
 
 export function AcceptDeclineButtons({
   quoteId,
@@ -19,6 +20,8 @@ export function AcceptDeclineButtons({
   const [acting, setActing] = useState(false);
   const [done, setDone] = useState<"accepted" | "declined" | null>(null);
   const [customerEmail, setCustomerEmail] = useState("");
+  const [hasSig, setHasSig] = useState(false);
+  const sigPadRef = useRef<SignaturePadHandle>(null);
 
   async function handleAction(action: "accept" | "decline") {
     if (action === "decline") {
@@ -32,6 +35,10 @@ export function AcceptDeclineButtons({
       const body: Record<string, string> = {};
       if (action === "accept" && customerEmail.trim()) {
         body.customerEmail = customerEmail.trim();
+      }
+      if (action === "accept" && sigPadRef.current) {
+        const sigData = sigPadRef.current.getSignatureData();
+        if (sigData) body.signatureData = sigData;
       }
 
       const res = await fetch(`/api/org/quotes/${quoteId}/${action}`, {
@@ -91,10 +98,19 @@ export function AcceptDeclineButtons({
         />
       </div>
 
+      {/* Signature capture */}
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">Customer Signature</Label>
+        <SignaturePad
+          ref={sigPadRef}
+          onChange={(isEmpty) => setHasSig(!isEmpty)}
+        />
+      </div>
+
       <Button
         type="button"
         onClick={() => handleAction("accept")}
-        disabled={acting}
+        disabled={acting || !hasSig}
         className="w-full bg-green-600 hover:bg-green-700 text-white h-14 text-lg font-bold"
       >
         {acting ? "..." : "Accept Quote"}

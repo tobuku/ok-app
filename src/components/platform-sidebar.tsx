@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { BarChart3, Building2, CreditCard, LogOut } from "lucide-react";
+import { BarChart3, Building2, CreditCard, LogOut, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
@@ -54,7 +54,14 @@ export function PlatformSidebar({ userName }: PlatformSidebarProps) {
           );
         })}
       </nav>
-      <div className="p-3 border-t border-border">
+      <div className="p-3 border-t border-border space-y-1">
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent("start-tour"))}
+          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full transition-colors"
+        >
+          <HelpCircle className="h-4 w-4 shrink-0" />
+          <span>Show Guide</span>
+        </button>
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground truncate">{userName}</span>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleLogout}>
