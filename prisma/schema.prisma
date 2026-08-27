@@ -24,6 +24,7 @@ model Organization {
   logoKey                 String?
   timezone                String    @default("Pacific/Honolulu")
   receiptsEmail           String?
+  senderEmail             String?   // "from" address for customer emails (requires verified domain in Resend)
   status                  OrgStatus @default(TRIALING)
   stripeConnectAccountId  String?
   stripeCustomerId        String?

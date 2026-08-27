@@ -12,17 +12,20 @@ export function BrandingForm({
   orgName,
   initialLogoUrl,
   initialReceiptsEmail,
+  initialSenderEmail,
   initialTaxRateBps,
 }: {
   orgName: string;
   initialLogoUrl: string | null;
   initialReceiptsEmail: string;
+  initialSenderEmail: string;
   initialTaxRateBps: number;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [logoUrl, setLogoUrl] = useState(initialLogoUrl);
   const [receiptsEmail, setReceiptsEmail] = useState(initialReceiptsEmail);
+  const [senderEmail, setSenderEmail] = useState(initialSenderEmail);
   const [taxRatePercent, setTaxRatePercent] = useState(
     (initialTaxRateBps / 100).toFixed(2)
   );
@@ -62,6 +65,7 @@ export function BrandingForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           receiptsEmail: receiptsEmail.trim() || null,
+          senderEmail: senderEmail.trim() || null,
           taxRateBps: bps,
         }),
       });
@@ -142,6 +146,22 @@ export function BrandingForm({
               type="email"
               value={receiptsEmail}
               onChange={(e) => setReceiptsEmail(e.target.value)}
+              placeholder="receipts@yourcompany.com"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="sender-email">Sender Email</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              The &quot;from&quot; address on receipts and invoices sent to customers.
+              Leave blank to use the platform default. If you set a custom address,
+              your domain must be verified with the email provider.
+            </p>
+            <Input
+              id="sender-email"
+              type="email"
+              value={senderEmail}
+              onChange={(e) => setSenderEmail(e.target.value)}
               placeholder="receipts@yourcompany.com"
             />
           </div>

@@ -34,7 +34,7 @@ export default async function PresentQuotePage({
 
   const org = await prisma.organization.findUnique({
     where: { id: user.orgId },
-    select: { name: true, logoKey: true, taxRateBps: true },
+    select: { name: true, logoKey: true, taxRateBps: true, stripeConnectAccountId: true },
   });
   if (!org) redirect("/m");
 
@@ -152,9 +152,14 @@ export default async function PresentQuotePage({
             </div>
           </div>
 
-          {/* Accept / Decline buttons — only if quote is presented */}
+          {/* Accept + Pay / Decline buttons — only if quote is presented */}
           {isPresented ? (
-            <AcceptDeclineButtons quoteId={quote.id} jobId={jobId} />
+            <AcceptDeclineButtons
+              quoteId={quote.id}
+              jobId={jobId}
+              totalCents={quote.totalCents}
+              stripeConnected={!!org.stripeConnectAccountId}
+            />
           ) : quoteStatus === "ACCEPTED" ? (
             <div className="space-y-3">
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">

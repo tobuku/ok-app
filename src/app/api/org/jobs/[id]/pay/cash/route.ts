@@ -100,7 +100,7 @@ export async function POST(
   if (quote.customerEmail) {
     const org = await prisma.organization.findUnique({
       where: { id: user.orgId },
-      select: { name: true, logoKey: true, receiptsEmail: true },
+      select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true },
     });
 
     const lines = await t.findMany<{
@@ -122,6 +122,7 @@ export async function POST(
       jobId,
       orgName: org?.name ?? "Service Provider",
       orgLogoUrl: logoUrl,
+      senderEmail: org?.senderEmail,
       receiptsEmail: org?.receiptsEmail,
       customerEmail: quote.customerEmail,
       jobNumber: job.jobNumber,

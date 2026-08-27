@@ -13,7 +13,7 @@ export async function GET() {
 
   const org = await prisma.organization.findUnique({
     where: { id: user.orgId },
-    select: { name: true, logoKey: true, receiptsEmail: true, taxRateBps: true },
+    select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, taxRateBps: true },
   });
 
   if (!org) {
@@ -44,6 +44,9 @@ export async function PATCH(req: NextRequest) {
   if (body.receiptsEmail !== undefined) {
     data.receiptsEmail = body.receiptsEmail?.trim() || null;
   }
+  if (body.senderEmail !== undefined) {
+    data.senderEmail = body.senderEmail?.trim() || null;
+  }
   if (body.taxRateBps !== undefined) {
     const bps = parseInt(body.taxRateBps, 10);
     if (isNaN(bps) || bps < 0 || bps > 5000) {
@@ -59,7 +62,7 @@ export async function PATCH(req: NextRequest) {
   const updated = await prisma.organization.update({
     where: { id: user.orgId },
     data,
-    select: { name: true, logoKey: true, receiptsEmail: true, taxRateBps: true },
+    select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, taxRateBps: true },
   });
 
   await auditLog({

@@ -16,7 +16,7 @@ export default async function BrandingPage() {
 
   const org = await prisma.organization.findUnique({
     where: { id: user.orgId },
-    select: { name: true, logoKey: true, receiptsEmail: true, taxRateBps: true },
+    select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, taxRateBps: true },
   });
 
   if (!org) redirect("/app");
@@ -37,6 +37,7 @@ export default async function BrandingPage() {
         orgName={org.name}
         initialLogoUrl={logoUrl}
         initialReceiptsEmail={org.receiptsEmail ?? ""}
+        initialSenderEmail={org.senderEmail ?? ""}
         initialTaxRateBps={org.taxRateBps}
       />
     </div>

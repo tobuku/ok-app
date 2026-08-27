@@ -22,6 +22,7 @@ type ReceiptData = {
   jobId: string;
   orgName: string;
   orgLogoUrl?: string | null;
+  senderEmail?: string | null;
   receiptsEmail?: string | null;
   customerEmail: string;
   jobNumber: number;
@@ -184,10 +185,12 @@ export async function sendReceipt(data: ReceiptData): Promise<void> {
   const html = buildReceiptHtml(data);
   const subject = `Receipt — ${data.orgName} Job #${data.jobNumber}`;
 
-  // From address: use RESEND_FROM override (required for sandbox: onboarding@resend.dev)
-  // Once you have a verified domain, set RESEND_DOMAIN and remove RESEND_FROM
-  const fromAddress = process.env.RESEND_FROM || `receipts@${process.env.RESEND_DOMAIN || "resend.dev"}`;
+  // From address: use org's senderEmail if set (requires verified domain in Resend),
+  // otherwise fall back to RESEND_FROM env var (sandbox: onboarding@resend.dev)
+  const platformDefault = process.env.RESEND_FROM || `receipts@${process.env.RESEND_DOMAIN || "resend.dev"}`;
+  const fromAddress = data.senderEmail || platformDefault;
   const from = `${data.orgName} <${fromAddress}>`;
+  const replyTo = data.receiptsEmail || undefined;
 
   const recipients: string[] = [data.customerEmail];
   if (data.receiptsEmail && data.receiptsEmail !== data.customerEmail) {
@@ -196,7 +199,7 @@ export async function sendReceipt(data: ReceiptData): Promise<void> {
 
   for (const to of recipients) {
     try {
-      await getResend().emails.send({ from, to, subject, html });
+      await getResend().emails.send({ from, to, subject, html, replyTo });
 
       await prisma.emailLog.create({
         data: {

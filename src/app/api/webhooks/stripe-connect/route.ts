@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     });
     const org = await prisma.organization.findUnique({
       where: { id: orgId },
-      select: { name: true, logoKey: true, receiptsEmail: true },
+      select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true },
     });
 
     if (quote?.customerEmail && job && org) {
@@ -127,6 +127,7 @@ export async function POST(request: NextRequest) {
         jobId,
         orgName: org.name,
         orgLogoUrl: logoUrl,
+        senderEmail: org.senderEmail,
         receiptsEmail: org.receiptsEmail,
         customerEmail: quote.customerEmail,
         jobNumber: job.jobNumber,
