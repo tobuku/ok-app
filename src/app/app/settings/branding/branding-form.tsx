@@ -151,18 +151,17 @@ export function BrandingForm({
           </div>
 
           <div>
-            <Label htmlFor="sender-email">Sender Email</Label>
+            <Label htmlFor="sender-email">Email Display Name</Label>
             <p className="text-xs text-muted-foreground mb-2">
-              The &quot;from&quot; address on receipts and invoices sent to customers.
-              Leave blank to use the platform default. If you set a custom address,
-              your domain must be verified with the email provider.
+              The name shown in the &quot;From&quot; field on receipts. Leave blank to
+              use your organization name. Customer replies go to your Receipts Email above.
             </p>
             <Input
               id="sender-email"
-              type="email"
+              type="text"
               value={senderEmail}
               onChange={(e) => setSenderEmail(e.target.value)}
-              placeholder="receipts@yourcompany.com"
+              placeholder={orgName}
             />
           </div>
 

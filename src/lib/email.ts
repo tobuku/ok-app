@@ -1,7 +1,16 @@
 /**
- * White-labeled receipt email via Resend.
+ * White-labeled email via Resend.
  * Sends tenant-branded invoice receipt to the customer AND the company's receiptsEmail.
  * NO platform branding — white-label per CLAUDE.md.
+ *
+ * From address always uses the verified domain (@send.junkmint.com in production).
+ * Organization.senderEmail is used as display name only — the actual sending address
+ * stays on the verified domain to prevent Resend 403 rejections.
+ * Reply-To is set to receiptsEmail so customer replies reach the org.
+ *
+ * Non-production guard: in Preview/Development, all recipients are redirected to
+ * the RESEND_SAFE_RECIPIENT env var (or suppressed) to prevent accidental sends
+ * to real customers from a verified domain.
  */
 import { Resend } from "resend";
 import { prisma } from "./prisma";
@@ -9,6 +18,32 @@ import { formatCents } from "./format";
 
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
+}
+
+/** Returns true if running in Vercel production environment */
+function isProduction(): boolean {
+  return process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+}
+
+/**
+ * In non-production, redirect recipient to a safe address.
+ * Returns null if no safe recipient is configured (email should be suppressed).
+ */
+function safeRecipient(originalTo: string): string | null {
+  if (isProduction()) return originalTo;
+  const safe = process.env.RESEND_SAFE_RECIPIENT;
+  if (safe) return safe;
+  console.warn(`[email] Non-production: suppressing email to ${originalTo} (set RESEND_SAFE_RECIPIENT to receive)`);
+  return null;
+}
+
+/**
+ * Build the From header. Always sends from the verified domain.
+ * displayName is the org name (or org's custom display name).
+ */
+function buildFrom(displayName: string): string {
+  const fromAddress = process.env.RESEND_FROM || `receipts@${process.env.RESEND_DOMAIN || "resend.dev"}`;
+  return `${displayName} <${fromAddress}>`;
 }
 
 type ReceiptLine = {
@@ -123,10 +158,6 @@ function buildReceiptHtml(data: ReceiptData): string {
 }
 
 /**
- * Send white-labeled receipt to the customer AND company receiptsEmail.
- * Logs to EmailLog.
- */
-/**
  * Send an org admin invite email from the platform.
  * The invite links to /onboarding?token=<invite token>.
  */
@@ -138,8 +169,7 @@ export async function sendOrgInvite(opts: {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const inviteUrl = `${appUrl}/onboarding?token=${opts.inviteToken}`;
 
-  const fromAddress = process.env.RESEND_FROM || `noreply@${process.env.RESEND_DOMAIN || "resend.dev"}`;
-  const from = `Platform <${fromAddress}>`;
+  const from = buildFrom("JunkMint");
 
   const html = `<!DOCTYPE html>
 <html>
@@ -162,13 +192,20 @@ export async function sendOrgInvite(opts: {
 </body>
 </html>`;
 
-  try {
-    await getResend().emails.send({
-      from,
-      to: opts.to,
-      subject: `Set up ${opts.orgName} — You're Invited`,
-      html,
+  const recipient = safeRecipient(opts.to);
+  if (!recipient) {
+    await prisma.emailLog.create({
+      data: { to: opts.to, template: "org_invite", status: "suppressed" },
     });
+    return;
+  }
+
+  const subject = !isProduction()
+    ? `[preview] Set up ${opts.orgName} — You're Invited`
+    : `Set up ${opts.orgName} — You're Invited`;
+
+  try {
+    await getResend().emails.send({ from, to: recipient, subject, html });
 
     await prisma.emailLog.create({
       data: { to: opts.to, template: "org_invite", status: "sent" },
@@ -181,15 +218,18 @@ export async function sendOrgInvite(opts: {
   }
 }
 
+/**
+ * Send white-labeled receipt to the customer AND company receiptsEmail.
+ * From address always uses the verified domain. senderEmail is ignored for
+ * the actual address — org name is used as the display name.
+ * Reply-To is set to receiptsEmail so customer replies reach the org.
+ */
 export async function sendReceipt(data: ReceiptData): Promise<void> {
   const html = buildReceiptHtml(data);
-  const subject = `Receipt — ${data.orgName} Job #${data.jobNumber}`;
 
-  // From address: use org's senderEmail if set (requires verified domain in Resend),
-  // otherwise fall back to RESEND_FROM env var (sandbox: onboarding@resend.dev)
-  const platformDefault = process.env.RESEND_FROM || `receipts@${process.env.RESEND_DOMAIN || "resend.dev"}`;
-  const fromAddress = data.senderEmail || platformDefault;
-  const from = `${data.orgName} <${fromAddress}>`;
+  // senderEmail is a display name override (not an email address)
+  const displayName = data.senderEmail || data.orgName;
+  const from = buildFrom(displayName);
   const replyTo = data.receiptsEmail || undefined;
 
   const recipients: string[] = [data.customerEmail];
@@ -197,7 +237,24 @@ export async function sendReceipt(data: ReceiptData): Promise<void> {
     recipients.push(data.receiptsEmail);
   }
 
-  for (const to of recipients) {
+  const subjectBase = `Receipt — ${data.orgName} Job #${data.jobNumber}`;
+  const subject = !isProduction() ? `[preview] ${subjectBase}` : subjectBase;
+
+  for (const originalTo of recipients) {
+    const to = safeRecipient(originalTo);
+    if (!to) {
+      await prisma.emailLog.create({
+        data: {
+          orgId: data.orgId,
+          jobId: data.jobId,
+          to: originalTo,
+          template: "receipt",
+          status: "suppressed",
+        },
+      });
+      continue;
+    }
+
     try {
       await getResend().emails.send({ from, to, subject, html, replyTo });
 
@@ -205,18 +262,18 @@ export async function sendReceipt(data: ReceiptData): Promise<void> {
         data: {
           orgId: data.orgId,
           jobId: data.jobId,
-          to,
+          to: originalTo,
           template: "receipt",
           status: "sent",
         },
       });
     } catch (err) {
-      console.error(`Failed to send receipt to ${to}:`, err);
+      console.error(`Failed to send receipt to ${originalTo}:`, err);
       await prisma.emailLog.create({
         data: {
           orgId: data.orgId,
           jobId: data.jobId,
-          to,
+          to: originalTo,
           template: "receipt",
           status: "failed",
         },
