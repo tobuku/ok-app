@@ -419,7 +419,9 @@ model DumpSite {
   orgId             String
   name              String
   address           String?
+  phone             String?
   hours             String?
+  weekendHours      String?
   acceptedMaterials String?
   feeNotes          String?
   active            Boolean @default(true)

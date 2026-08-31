@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   if (user instanceof Response) return user;
 
   const body = await req.json();
-  const { name, address, hours, acceptedMaterials, feeNotes } = body;
+  const { name, address, phone, hours, weekendHours, acceptedMaterials, feeNotes } = body;
 
   if (!name?.trim()) {
     return NextResponse.json({ error: "name is required" }, { status: 400 });
@@ -33,7 +33,9 @@ export async function POST(req: NextRequest) {
     data: {
       name: name.trim(),
       address: address?.trim() || null,
+      phone: phone?.trim() || null,
       hours: hours?.trim() || null,
+      weekendHours: weekendHours?.trim() || null,
       acceptedMaterials: acceptedMaterials?.trim() || null,
       feeNotes: feeNotes?.trim() || null,
     },

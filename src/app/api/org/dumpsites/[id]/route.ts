@@ -14,7 +14,7 @@ export async function PATCH(
   const body = await req.json();
   const data: Record<string, unknown> = {};
 
-  const fields = ["name", "address", "hours", "acceptedMaterials", "feeNotes"] as const;
+  const fields = ["name", "address", "phone", "hours", "weekendHours", "acceptedMaterials", "feeNotes"] as const;
   for (const f of fields) {
     if (body[f] !== undefined) data[f] = body[f]?.trim() || null;
   }

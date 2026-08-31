@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Pencil, X, Check } from "lucide-react";
 
 type Truck = {
   id: string;
@@ -37,6 +38,10 @@ export function TruckManager({
   const [newName, setNewName] = useState("");
   const [newCapacity, setNewCapacity] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editCapacity, setEditCapacity] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
 
   const filtered = showInactive ? trucks : trucks.filter((t) => t.active);
 
@@ -84,6 +89,48 @@ export function TruckManager({
       router.refresh();
     } else {
       showError("Failed to update truck");
+    }
+  }
+
+  function startEdit(truck: Truck) {
+    setEditingId(truck.id);
+    setEditName(truck.name);
+    setEditCapacity(truck.capacityCubicYards?.toString() ?? "");
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditName("");
+    setEditCapacity("");
+  }
+
+  async function saveEdit(truckId: string) {
+    if (!editName.trim()) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/org/trucks/${truckId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editName.trim(),
+          capacityCubicYards: editCapacity ? parseFloat(editCapacity) : null,
+        }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setTrucks((prev) =>
+          prev.map((t) => (t.id === truckId ? { ...t, name: updated.name, capacityCubicYards: updated.capacityCubicYards } : t))
+        );
+        setEditingId(null);
+        showSuccess("Truck updated");
+        router.refresh();
+      } else {
+        showError("Failed to update truck");
+      }
+    } catch {
+      showError("Network error");
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -154,34 +201,94 @@ export function TruckManager({
                 <TableHead className="px-4 text-xs uppercase">Name</TableHead>
                 <TableHead className="px-4 text-xs uppercase">Capacity</TableHead>
                 <TableHead className="px-4 text-xs uppercase">Status</TableHead>
-                {isAdmin && (
-                  <TableHead className="px-4 text-xs uppercase text-right">Actions</TableHead>
-                )}
+                <TableHead className="px-4 text-xs uppercase text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((truck) => (
                 <TableRow key={truck.id} className={!truck.active ? "opacity-50" : ""}>
-                  <TableCell className="px-4 py-3 font-medium text-foreground">{truck.name}</TableCell>
-                  <TableCell className="px-4 py-3 text-muted-foreground">
-                    {truck.capacityCubicYards ? `${truck.capacityCubicYards} cu yd` : "-"}
-                  </TableCell>
-                  <TableCell className="px-4 py-3">
-                    <Badge variant={truck.active ? "success" : "secondary"}>
-                      {truck.active ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  {isAdmin && (
-                    <TableCell className="px-4 py-3 text-right">
-                      <Button
-                        variant="link"
-                        size="sm"
-                        onClick={() => toggleActive(truck)}
-                        className="text-xs h-auto p-0"
-                      >
-                        {truck.active ? "Deactivate" : "Reactivate"}
-                      </Button>
-                    </TableCell>
+                  {editingId === truck.id ? (
+                    <>
+                      <TableCell className="px-4 py-2">
+                        <Input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                      </TableCell>
+                      <TableCell className="px-4 py-2">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={editCapacity}
+                          onChange={(e) => setEditCapacity(e.target.value)}
+                          placeholder="Optional"
+                          className="h-8 text-sm w-28"
+                        />
+                      </TableCell>
+                      <TableCell className="px-4 py-2">
+                        <Badge variant={truck.active ? "success" : "secondary"}>
+                          {truck.active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-4 py-2 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => saveEdit(truck.id)}
+                            disabled={editSaving || !editName.trim()}
+                          >
+                            <Check className="h-4 w-4 text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={cancelEdit}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell className="px-4 py-3 font-medium text-foreground">{truck.name}</TableCell>
+                      <TableCell className="px-4 py-3 text-muted-foreground">
+                        {truck.capacityCubicYards ? `${truck.capacityCubicYards} cu yd` : "-"}
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
+                        <Badge variant={truck.active ? "success" : "secondary"}>
+                          {truck.active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => startEdit(truck)}
+                            title="Edit"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          {isAdmin && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              onClick={() => toggleActive(truck)}
+                              className="text-xs h-auto p-0"
+                            >
+                              {truck.active ? "Deactivate" : "Reactivate"}
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </>
                   )}
                 </TableRow>
               ))}

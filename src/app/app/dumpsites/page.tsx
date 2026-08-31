@@ -20,7 +20,9 @@ export default async function DumpSitesPage() {
     id: string;
     name: string;
     address: string | null;
+    phone: string | null;
     hours: string | null;
+    weekendHours: string | null;
     acceptedMaterials: string | null;
     feeNotes: string | null;
     active: boolean;
