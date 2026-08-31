@@ -3,6 +3,10 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft } from "lucide-react";
 
 type Customer = { id: string; name: string; phone: string | null; addresses: { id: string; line1: string; city: string; state: string; zip: string }[] };
 type User = { id: string; name: string; role: string };
@@ -70,119 +74,120 @@ export default function NewJobPage() {
     router.push(`/app/jobs/${job.id}`);
   }
 
-  if (loading) return <p className="text-gray-500">Loading...</p>;
+  if (loading) return <p className="text-muted-foreground">Loading...</p>;
 
   return (
     <div className="max-w-xl">
-      <Link href="/app" className="text-sm text-blue-600 hover:underline mb-4 block">
+      <Link href="/app" className="text-sm text-primary hover:underline mb-4 inline-flex items-center gap-1">
+        <ArrowLeft className="w-3 h-3" />
         Back to board
       </Link>
 
       <h1 className="text-2xl font-bold mb-6">New Job</h1>
 
       {customers.length === 0 && (
-        <div className="mb-4 p-4 bg-yellow-50 rounded-md text-sm">
+        <div className="mb-4 p-4 bg-accent rounded-md text-sm">
           No customers yet.{" "}
-          <Link href="/app/customers/new" className="text-blue-600 underline">
+          <Link href="/app/customers/new" className="text-primary underline">
             Create one first
           </Link>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
-          <select
-            value={customerId}
-            onChange={(e) => { setCustomerId(e.target.value); setAddressId(""); }}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-          >
-            <option value="">Select customer...</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}{c.phone ? ` (${c.phone})` : ""}
-              </option>
-            ))}
-          </select>
-        </div>
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label className="mb-1">Customer *</Label>
+              <select
+                value={customerId}
+                onChange={(e) => { setCustomerId(e.target.value); setAddressId(""); }}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Select customer...</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}{c.phone ? ` (${c.phone})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        {selectedCustomer && selectedCustomer.addresses.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Service Address</label>
-            <select
-              value={addressId}
-              onChange={(e) => setAddressId(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Select address...</option>
-              {selectedCustomer.addresses.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.line1}, {a.city}, {a.state} {a.zip}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+            {selectedCustomer && selectedCustomer.addresses.length > 0 && (
+              <div>
+                <Label className="mb-1">Service Address</Label>
+                <select
+                  value={addressId}
+                  onChange={(e) => setAddressId(e.target.value)}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Select address...</option>
+                  {selectedCustomer.addresses.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.line1}, {a.city}, {a.state} {a.zip}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Scheduled Date</label>
-          <input
-            type="date"
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-          />
-        </div>
+            <div>
+              <Label className="mb-1">Scheduled Date</Label>
+              <input
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Assign Leadman</label>
-          <select
-            value={assignedToId}
-            onChange={(e) => setAssignedToId(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-          >
-            <option value="">Unassigned</option>
-            {leadmen.map((u) => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
-          </select>
-        </div>
+            <div>
+              <Label className="mb-1">Assign Leadman</Label>
+              <select
+                value={assignedToId}
+                onChange={(e) => setAssignedToId(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Unassigned</option>
+                {leadmen.map((u) => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
-          <select
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-          >
-            <option value="PHONE">Phone</option>
-            <option value="REFERRAL">Referral</option>
-            <option value="REPEAT">Repeat</option>
-            <option value="OTHER">Other</option>
-          </select>
-        </div>
+            <div>
+              <Label className="mb-1">Source</Label>
+              <select
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="PHONE">Phone</option>
+                <option value="REFERRAL">Referral</option>
+                <option value="REPEAT">Repeat</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            placeholder="Items to remove, access instructions, etc."
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-          />
-        </div>
+            <div>
+              <Label className="mb-1">Notes</Label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                placeholder="Items to remove, access instructions, etc."
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-        >
-          {saving ? "Creating..." : "Create Job"}
-        </button>
-      </form>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Creating..." : "Create Job"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

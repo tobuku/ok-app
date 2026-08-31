@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { requireOrgUser } from "@/lib/auth";
 import { tenantScope } from "@/lib/tenant";
+import { getOrgToday } from "@/lib/date-utils";
 
 export async function GET() {
   const userOrRes = await requireOrgUser(["LEADMAN", "DISPATCHER", "ORG_ADMIN"], true);
@@ -13,13 +14,7 @@ export async function GET() {
 
   const t = tenantScope({ orgId: user.orgId, actorUserId: user.id });
 
-  const today = new Date();
-  const y = today.getFullYear();
-  const m = String(today.getMonth() + 1).padStart(2, "0");
-  const d = String(today.getDate()).padStart(2, "0");
-  const todayStr = `${y}-${m}-${d}`;
-  const start = new Date(todayStr + "T00:00:00Z");
-  const end = new Date(todayStr + "T23:59:59.999Z");
+  const { start, end } = getOrgToday(user.timezone);
 
   // Jobs completed today by this user
   const completedJobs = await t.findMany<{

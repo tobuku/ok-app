@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrgUser } from "@/lib/auth";
 import { tenantScope } from "@/lib/tenant";
+import { dateToDayBounds } from "@/lib/date-utils";
 import { prisma } from "@/lib/prisma";
 
 /** GET /api/org/jobs — list jobs. Leadman sees only assigned; Dispatcher/Admin see all. */
@@ -19,8 +20,7 @@ export async function GET(req: NextRequest) {
   if (user.role === "LEADMAN") where.assignedToId = user.id;
 
   if (date) {
-    const start = new Date(date + "T00:00:00");
-    const end = new Date(date + "T23:59:59.999");
+    const { start, end } = dateToDayBounds(date, user.timezone);
     where.scheduledDate = { gte: start, lte: end };
   }
 
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       customerId,
       addressId: addressId || null,
       status: scheduledDate ? "SCHEDULED" : "NEW",
-      scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
+      scheduledDate: scheduledDate ? dateToDayBounds(scheduledDate, user.timezone).start : null,
       timeWindowStart: timeWindowStart ? new Date(timeWindowStart) : null,
       timeWindowEnd: timeWindowEnd ? new Date(timeWindowEnd) : null,
       assignedToId: assignedToId || null,

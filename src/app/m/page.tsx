@@ -1,6 +1,7 @@
 import { resolveAuth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { tenantScope } from "@/lib/tenant";
+import { getOrgToday } from "@/lib/date-utils";
 import Link from "next/link";
 import type { JobStatus } from "@prisma/client";
 import { ChevronRight, MapPin } from "lucide-react";
@@ -27,13 +28,7 @@ export default async function TodayPage() {
   if (!("user" in result)) redirect("/platform");
   const { user } = result;
 
-  const today = new Date();
-  const y = today.getFullYear();
-  const m = String(today.getMonth() + 1).padStart(2, "0");
-  const d = String(today.getDate()).padStart(2, "0");
-  const todayStr = `${y}-${m}-${d}`;
-  const start = new Date(todayStr + "T00:00:00Z");
-  const end = new Date(todayStr + "T23:59:59.999Z");
+  const { todayStr, start, end } = getOrgToday(user.timezone);
 
   const t = tenantScope({ orgId: user.orgId, actorUserId: user.id });
 
@@ -56,10 +51,11 @@ export default async function TodayPage() {
     <div>
       <h1 className="text-xl font-bold mb-1">Today&apos;s Jobs</h1>
       <p className="text-sm text-muted-foreground mb-4">
-        {today.toLocaleDateString("en-US", {
+        {new Date(todayStr + "T12:00:00Z").toLocaleDateString("en-US", {
           weekday: "long",
           month: "long",
           day: "numeric",
+          timeZone: user.timezone,
         })}
       </p>
 

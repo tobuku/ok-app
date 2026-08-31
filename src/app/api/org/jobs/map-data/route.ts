@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrgUser } from "@/lib/auth";
+import { dateToDayBounds } from "@/lib/date-utils";
 import { prisma } from "@/lib/prisma";
 
 /** GET /api/org/jobs/map-data — jobs with lat/lng for map pins */
@@ -14,8 +15,7 @@ export async function GET(req: NextRequest) {
   const where: Record<string, unknown> = { orgId: user.orgId };
   if (status) where.status = status;
   if (date) {
-    const start = new Date(date + "T00:00:00");
-    const end = new Date(date + "T23:59:59.999");
+    const { start, end } = dateToDayBounds(date, user.timezone);
     where.scheduledDate = { gte: start, lte: end };
   }
 

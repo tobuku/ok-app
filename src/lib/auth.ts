@@ -12,6 +12,7 @@ export type AuthUser = {
   authUid: string;
   orgId: string;
   orgStatus: OrgStatus;
+  timezone: string;
   role: OrgRole;
   name: string;
   email: string;
@@ -67,7 +68,7 @@ export async function resolveAuth(): Promise<AuthResult> {
   // Load org user
   const user = await prisma.user.findUnique({
     where: { authUid: authUser.id },
-    include: { organization: { select: { status: true } } },
+    include: { organization: { select: { status: true, timezone: true } } },
   });
 
   if (!user) {
@@ -85,6 +86,7 @@ export async function resolveAuth(): Promise<AuthResult> {
       authUid: user.authUid,
       orgId: user.orgId,
       orgStatus: user.organization.status,
+      timezone: user.organization.timezone,
       role: user.role,
       name: user.name,
       email: user.email,
