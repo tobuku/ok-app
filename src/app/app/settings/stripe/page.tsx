@@ -1,9 +1,8 @@
 import { resolveAuth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { isConnectAccountReady } from "@/lib/stripe-connect";
 import { StripeConnectButton } from "./stripe-connect-button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +26,12 @@ export default async function StripeSettingsPage({
 
   let chargesEnabled = false;
   if (org?.stripeConnectAccountId) {
-    chargesEnabled = await isConnectAccountReady(org.stripeConnectAccountId);
+    try {
+      const { isConnectAccountReady } = await import("@/lib/stripe-connect");
+      chargesEnabled = await isConnectAccountReady(org.stripeConnectAccountId);
+    } catch (e) {
+      console.error("Stripe Connect check failed:", e);
+    }
   }
 
   return (
