@@ -152,6 +152,18 @@ export default async function PresentQuotePage({
             </div>
           </div>
 
+          {/* Terms & Conditions */}
+          <div className="text-[10px] leading-tight text-muted-foreground border border-border rounded-md p-3 space-y-1.5 bg-muted/30">
+            <p className="font-semibold text-xs text-foreground uppercase tracking-wide mb-1">Terms & Conditions</p>
+            <p>By signing below, you authorize {org.name} to remove the items and/or materials identified in this quote from the specified location.</p>
+            <p><strong>All sales are final.</strong> No refunds or chargebacks will be issued once work has commenced.</p>
+            <p><strong>Damage disclaimer:</strong> {org.name} will exercise reasonable care during removal. However, we are not liable for pre-existing damage, cosmetic wear to surfaces (walls, floors, doorways, landscaping) incurred during the removal of heavy, oversized, or awkwardly placed items, or for damage to items not included in this quote that are in the removal path.</p>
+            <p><strong>Hazardous materials:</strong> This quote does not cover hazardous, biohazard, or regulated materials (chemicals, asbestos, medical waste, etc.) unless explicitly listed. Discovery of such materials may result in additional charges or work stoppage.</p>
+            <p><strong>Access & conditions:</strong> Customer is responsible for providing clear access to the removal area. Additional labor or equipment required due to undisclosed site conditions (stairs, narrow access, long carry distances) may incur extra charges with prior approval.</p>
+            <p><strong>Abandoned items:</strong> All removed items become the property of {org.name} for disposal, recycling, or resale at our discretion.</p>
+            <p>Your signature below constitutes acceptance of these terms and authorization to proceed with the work described in this quote.</p>
+          </div>
+
           {/* Accept + Pay / Decline buttons — only if quote is presented */}
           {isPresented ? (
             <AcceptDeclineButtons

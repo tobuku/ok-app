@@ -152,6 +152,13 @@ export async function GET(
       </table>
       ${paymentStatus}
     </div>
+    <div style="max-width:480px;margin:12px auto 0;padding:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;font-size:10px;line-height:1.4;color:#6b7280;">
+      <p style="margin:0 0 6px;font-weight:700;font-size:11px;color:#374151;text-transform:uppercase;letter-spacing:0.5px;">Terms &amp; Conditions</p>
+      <p style="margin:0 0 4px;">All sales are final. No refunds or chargebacks will be issued once work has commenced.</p>
+      <p style="margin:0 0 4px;"><strong>Damage disclaimer:</strong> ${orgName} exercises reasonable care during removal but is not liable for pre-existing damage, cosmetic wear to surfaces during removal of heavy or oversized items, or damage to items not included in this quote that are in the removal path.</p>
+      <p style="margin:0 0 4px;"><strong>Hazardous materials:</strong> This invoice does not cover hazardous, biohazard, or regulated materials unless explicitly listed. Discovery of such materials may result in additional charges.</p>
+      <p style="margin:0 0 4px;"><strong>Abandoned items:</strong> All removed items become the property of ${orgName} for disposal, recycling, or resale.</p>
+    </div>
     <p style="text-align:center;color:#9ca3af;font-size:12px;margin-top:16px;">
       Thank you for your business.
     </p>
