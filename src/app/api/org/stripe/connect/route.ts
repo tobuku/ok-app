@@ -36,6 +36,12 @@ export async function POST() {
   }
 
   try {
+    // Quick connectivity test
+    const Stripe = (await import("stripe")).default;
+    const testStripe = new Stripe(key);
+    const balance = await testStripe.balance.retrieve();
+    console.log("Stripe connection OK, balance currency:", balance.available?.[0]?.currency);
+
     const { accountId, url } = await createConnectOnboardingLink({
       orgId: user.orgId,
       existingAccountId: org.stripeConnectAccountId,
