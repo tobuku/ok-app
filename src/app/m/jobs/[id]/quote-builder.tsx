@@ -36,6 +36,7 @@ export function QuoteBuilder({
 }) {
   const [items, setItems] = useState<PriceItem[]>([]);
   const [lines, setLines] = useState<QuoteLine[]>([]);
+  const [truckLoads, setTruckLoads] = useState(1);
   const [discountCents, setDiscountCents] = useState(0);
   const [discountReason, setDiscountReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -60,7 +61,8 @@ export function QuoteBuilder({
     .filter((i) => i.kind === "ADDON" || i.kind === "FEE")
     .sort((a, b) => (b.usageCount ?? 0) - (a.usageCount ?? 0) || a.sortOrder - b.sortOrder);
 
-  const subtotalCents = lines.reduce((s, l) => s + l.qty * l.unitCents, 0);
+  const perLoadCents = lines.reduce((s, l) => s + l.qty * l.unitCents, 0);
+  const subtotalCents = perLoadCents * truckLoads;
   const taxableAmount = subtotalCents - discountCents;
   const taxCents = Math.round((taxableAmount * taxRateBps) / 10000);
   const totalCents = taxableAmount + taxCents;
@@ -101,7 +103,7 @@ export function QuoteBuilder({
       const res = await fetch(`/api/org/jobs/${jobId}/quote`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lines, discountCents, discountReason }),
+        body: JSON.stringify({ lines, truckLoads, discountCents, discountReason }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -186,6 +188,43 @@ export function QuoteBuilder({
           </div>
         </div>
 
+        {/* Truck Loads Multiplier */}
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Number of Truck Loads</p>
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setTruckLoads((v) => Math.max(1, v - 1))}
+              className="w-10 h-10 text-lg"
+            >
+              -
+            </Button>
+            <Input
+              type="number"
+              min="1"
+              value={truckLoads}
+              onChange={(e) => setTruckLoads(Math.max(1, Math.round(Number(e.target.value) || 1)))}
+              className="w-20 text-center text-lg font-bold h-10"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setTruckLoads((v) => v + 1)}
+              className="w-10 h-10 text-lg"
+            >
+              +
+            </Button>
+            {truckLoads > 1 && perLoadCents > 0 && (
+              <span className="text-sm text-muted-foreground">
+                {formatCents(perLoadCents)}/load
+              </span>
+            )}
+          </div>
+        </div>
+
         {/* Add-ons */}
         <div>
           <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Add-ons</p>
@@ -259,8 +298,16 @@ export function QuoteBuilder({
         {/* Totals */}
         {lines.length > 0 && (
           <div className="border-t border-border pt-3 space-y-1 text-sm">
+            {truckLoads > 1 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Per load</span>
+                <span className="text-foreground">{formatCents(perLoadCents)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Subtotal</span>
+              <span className="text-muted-foreground">
+                Subtotal{truckLoads > 1 ? ` (${truckLoads} loads)` : ""}
+              </span>
               <span className="text-foreground">{formatCents(subtotalCents)}</span>
             </div>
             {discountCents > 0 && (

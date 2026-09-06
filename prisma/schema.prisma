@@ -312,6 +312,7 @@ model Quote {
   orgId           String
   jobId           String
   status          QuoteStatus @default(DRAFT)
+  truckLoads      Int         @default(1)
   subtotalCents   Int         @default(0)
   discountCents   Int         @default(0)
   discountReason  String?

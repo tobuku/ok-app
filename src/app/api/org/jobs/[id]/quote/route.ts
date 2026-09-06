@@ -34,17 +34,20 @@ export async function POST(
   }
 
   const body = await request.json();
-  const { lines, discountCents = 0, discountReason } = body;
+  const { lines, discountCents = 0, discountReason, truckLoads = 1 } = body;
 
   if (!Array.isArray(lines) || lines.length === 0) {
     return NextResponse.json({ error: "lines[] required" }, { status: 400 });
   }
 
-  // Calculate totals
-  const subtotalCents = lines.reduce(
+  const loads = Math.max(1, Math.round(truckLoads));
+
+  // Calculate totals — line items are per-load, multiplied by truck loads
+  const perLoadCents = lines.reduce(
     (sum: number, l: { qty: number; unitCents: number }) => sum + l.qty * l.unitCents,
     0
   );
+  const subtotalCents = perLoadCents * loads;
 
   // Get org tax rate
   const org = await prisma.organization.findUnique({
@@ -62,6 +65,7 @@ export async function POST(
         orgId: user.orgId,
         jobId,
         status: "DRAFT",
+        truckLoads: loads,
         subtotalCents,
         discountCents,
         discountReason: discountReason || null,
