@@ -186,6 +186,30 @@ export function QuoteBuilder({
               </Button>
             ))}
           </div>
+          {/* Editable price for selected load fraction */}
+          {selectedLF && (
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-xs text-muted-foreground">Price:</span>
+              <span className="text-sm text-muted-foreground">$</span>
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={selectedLF.unitCents / 100 || ""}
+                onChange={(e) => {
+                  const cents = Math.round(Number(e.target.value) * 100);
+                  setLines((prev) =>
+                    prev.map((l) =>
+                      l.priceItemId === selectedLF.priceItemId
+                        ? { ...l, unitCents: cents }
+                        : l
+                    )
+                  );
+                }}
+                className="w-28 text-sm h-9"
+              />
+            </div>
+          )}
         </div>
 
         {/* Truck Loads Multiplier */}
