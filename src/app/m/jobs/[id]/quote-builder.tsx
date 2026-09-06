@@ -45,17 +45,51 @@ export function QuoteBuilder({
   const [emailing, setEmailing] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Can only build quotes in ON_SITE, QUOTED, or DECLINED status
   const canQuote = ["ON_SITE", "QUOTED", "DECLINED"].includes(jobStatus);
 
   useEffect(() => {
-    fetch("/api/org/pricebook")
-      .then((res) => res.json())
-      .then((data) => setItems(data.items || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+    const loadData = async () => {
+      try {
+        // Load price book
+        const pbRes = await fetch("/api/org/pricebook");
+        const pbData = await pbRes.json();
+        const priceItems: PriceItem[] = pbData.items || [];
+        setItems(priceItems);
+
+        // If job is QUOTED, load existing quote for editing
+        if (jobStatus === "QUOTED") {
+          const qRes = await fetch(`/api/org/jobs/${jobId}/quote`);
+          const qData = await qRes.json();
+          const q = qData.quote;
+          if (q && (q.status === "DRAFT" || q.status === "PRESENTED")) {
+            setEditingQuoteId(q.id);
+            setTruckLoads(q.truckLoads ?? 1);
+            setDiscountCents(q.discountCents ?? 0);
+            setDiscountReason(q.discountReason ?? "");
+            // Restore lines from quote lines
+            const restored: QuoteLine[] = (q.lines || []).map(
+              (ql: { priceItemId: string | null; label: string; qty: number; unitCents: number }) => ({
+                priceItemId: ql.priceItemId ?? "",
+                label: ql.label,
+                qty: ql.qty,
+                unitCents: ql.unitCents,
+              })
+            );
+            setLines(restored);
+          }
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [jobId, jobStatus]);
 
   if (!canQuote) return null;
 
@@ -102,17 +136,20 @@ export function QuoteBuilder({
     if (lines.length === 0) return;
     setSubmitting(true);
 
+    const method = editingQuoteId ? "PATCH" : "POST";
+
     try {
       const res = await fetch(`/api/org/jobs/${jobId}/quote`, {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lines, truckLoads, discountCents, discountReason }),
       });
       const data = await res.json();
       if (!res.ok) {
-        showError(data.error || "Failed to create quote");
+        showError(data.error || `Failed to ${editingQuoteId ? "update" : "create"} quote`);
       } else {
         setResult({ quoteId: data.quote.id });
+        setIsEditing(false);
       }
     } catch {
       showError("Network error");
@@ -143,16 +180,29 @@ export function QuoteBuilder({
     }
   }
 
-  if (result) {
+  if (result && !isEditing) {
     return (
       <Card className="border-green-200 bg-green-50">
         <CardContent className="p-4 space-y-3">
-          <p className="text-green-800 font-medium">Quote created</p>
+          <p className="text-green-800 font-medium">
+            {editingQuoteId ? "Quote updated" : "Quote created"}
+          </p>
           <p className="text-green-600 text-sm">Total: {formatCents(totalCents)}</p>
           <Button asChild className="w-full h-12">
             <a href={`/m/jobs/${jobId}/present?quoteId=${result.quoteId}`}>
               Present to Customer
             </a>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setEditingQuoteId(result.quoteId);
+              setIsEditing(true);
+            }}
+            className="w-full bg-white"
+          >
+            Edit Quote
           </Button>
           <div className="border-t border-green-200 pt-3">
             <p className="text-green-700 text-xs font-medium uppercase mb-2">Or email estimate to customer</p>
@@ -214,7 +264,9 @@ export function QuoteBuilder({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Build Quote</CardTitle>
+        <CardTitle className="text-base">
+          {editingQuoteId ? "Edit Quote" : "Build Quote"}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Load Fraction Selection */}
@@ -409,7 +461,9 @@ export function QuoteBuilder({
           disabled={lines.length === 0 || submitting}
           className="w-full h-12 font-medium"
         >
-          {submitting ? "Creating..." : "Create Quote"}
+          {submitting
+            ? (editingQuoteId ? "Updating..." : "Creating...")
+            : (editingQuoteId ? "Update Quote" : "Create Quote")}
         </Button>
       </CardContent>
     </Card>

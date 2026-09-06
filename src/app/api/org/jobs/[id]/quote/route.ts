@@ -113,6 +113,104 @@ export async function POST(
   return NextResponse.json({ quote });
 }
 
+/** PATCH /api/org/jobs/:id/quote — Update an existing DRAFT or PRESENTED quote */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: jobId } = await params;
+  const userOrRes = await requireOrgUser(["LEADMAN", "ORG_ADMIN"], true);
+  if (userOrRes instanceof Response) return userOrRes;
+  const user = userOrRes;
+
+  const t = tenantScope({ orgId: user.orgId, actorUserId: user.id });
+
+  // Find the latest quote for this job
+  const quotes = await t.findMany<{ id: string; status: string }>("quote", {
+    where: { jobId },
+    orderBy: { createdAt: "desc" },
+    take: 1,
+  });
+  const existing = quotes[0] ?? null;
+  if (!existing) {
+    return NextResponse.json({ error: "No quote to edit" }, { status: 404 });
+  }
+  if (existing.status !== "DRAFT" && existing.status !== "PRESENTED") {
+    return NextResponse.json(
+      { error: `Cannot edit quote in status ${existing.status}` },
+      { status: 400 }
+    );
+  }
+
+  const body = await request.json();
+  const { lines, discountCents = 0, discountReason, truckLoads = 1 } = body;
+
+  if (!Array.isArray(lines) || lines.length === 0) {
+    return NextResponse.json({ error: "lines[] required" }, { status: 400 });
+  }
+
+  const loads = Math.max(1, Math.round(truckLoads));
+  const perLoadCents = lines.reduce(
+    (sum: number, l: { qty: number; unitCents: number }) => sum + l.qty * l.unitCents,
+    0
+  );
+  const subtotalCents = perLoadCents * loads;
+
+  const org = await prisma.organization.findUnique({
+    where: { id: user.orgId },
+    select: { taxRateBps: true },
+  });
+  const taxableAmount = subtotalCents - discountCents;
+  const taxCents = Math.round((taxableAmount * (org?.taxRateBps ?? 0)) / 10000);
+  const totalCents = taxableAmount + taxCents;
+
+  const quote = await prisma.$transaction(async (tx) => {
+    // Delete old lines and replace
+    await tx.quoteLine.deleteMany({ where: { quoteId: existing.id } });
+
+    const q = await tx.quote.update({
+      where: { id: existing.id },
+      data: {
+        status: "DRAFT", // reset to DRAFT if it was PRESENTED
+        truckLoads: loads,
+        subtotalCents,
+        discountCents,
+        discountReason: discountReason || null,
+        taxCents,
+        totalCents,
+      },
+    });
+
+    for (const line of lines) {
+      await tx.quoteLine.create({
+        data: {
+          orgId: user.orgId,
+          quoteId: existing.id,
+          priceItemId: line.priceItemId || null,
+          label: line.label,
+          qty: line.qty ?? 1,
+          unitCents: line.unitCents,
+          totalCents: (line.qty ?? 1) * line.unitCents,
+        },
+      });
+    }
+
+    return q;
+  });
+
+  const { auditLog } = await import("@/lib/audit");
+  await auditLog({
+    orgId: user.orgId,
+    actorUserId: user.id,
+    action: "UPDATE",
+    entity: "quote",
+    entityId: quote.id,
+    meta: { jobId, totalCents },
+  });
+
+  return NextResponse.json({ quote });
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -128,6 +226,7 @@ export async function GET(
   const quotes = await t.findMany<{
     id: string;
     status: string;
+    truckLoads: number;
     subtotalCents: number;
     discountCents: number;
     discountReason: string | null;
