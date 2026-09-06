@@ -27,32 +27,38 @@ export async function POST() {
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-  const { accountId, url } = await createConnectOnboardingLink({
-    orgId: user.orgId,
-    existingAccountId: org.stripeConnectAccountId,
-    orgName: org.name,
-    returnUrl: `${baseUrl}/app/settings/stripe?status=complete`,
-    refreshUrl: `${baseUrl}/app/settings/stripe?status=refresh`,
-  });
-
-  // Save the account ID if newly created
-  if (!org.stripeConnectAccountId) {
-    await prisma.organization.update({
-      where: { id: user.orgId },
-      data: { stripeConnectAccountId: accountId },
-    });
-
-    await auditLog({
+  try {
+    const { accountId, url } = await createConnectOnboardingLink({
       orgId: user.orgId,
-      actorUserId: user.id,
-      action: "STRIPE_CONNECT_INIT",
-      entity: "organization",
-      entityId: user.orgId,
-      meta: { accountId },
+      existingAccountId: org.stripeConnectAccountId,
+      orgName: org.name,
+      returnUrl: `${baseUrl}/app/settings/stripe?status=complete`,
+      refreshUrl: `${baseUrl}/app/settings/stripe?status=refresh`,
     });
-  }
 
-  return NextResponse.json({ url });
+    // Save the account ID if newly created
+    if (!org.stripeConnectAccountId) {
+      await prisma.organization.update({
+        where: { id: user.orgId },
+        data: { stripeConnectAccountId: accountId },
+      });
+
+      await auditLog({
+        orgId: user.orgId,
+        actorUserId: user.id,
+        action: "STRIPE_CONNECT_INIT",
+        entity: "organization",
+        entityId: user.orgId,
+        meta: { accountId },
+      });
+    }
+
+    return NextResponse.json({ url });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    console.error("Stripe Connect error:", e);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function GET() {
