@@ -27,21 +27,7 @@ export async function POST() {
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) {
-    return NextResponse.json({ error: "STRIPE_SECRET_KEY not set" }, { status: 500 });
-  }
-  if (!key.startsWith("sk_live_") && !key.startsWith("sk_test_")) {
-    return NextResponse.json({ error: `Invalid key format: starts with ${key.substring(0, 8)}...` }, { status: 500 });
-  }
-
   try {
-    // Quick connectivity test
-    const Stripe = (await import("stripe")).default;
-    const testStripe = new Stripe(key);
-    const balance = await testStripe.balance.retrieve();
-    console.log("Stripe connection OK, balance currency:", balance.available?.[0]?.currency);
-
     const { accountId, url } = await createConnectOnboardingLink({
       orgId: user.orgId,
       existingAccountId: org.stripeConnectAccountId,
