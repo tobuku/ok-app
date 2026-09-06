@@ -322,6 +322,7 @@ model Quote {
   acceptedAt      DateTime?
   declinedReason  String?
   signatureKey    String?
+  viewToken       String?     @unique
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 

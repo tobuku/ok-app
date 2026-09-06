@@ -41,6 +41,9 @@ export function QuoteBuilder({
   const [discountReason, setDiscountReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ quoteId: string } | null>(null);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailing, setEmailing] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Can only build quotes in ON_SITE, QUOTED, or DECLINED status
@@ -118,17 +121,64 @@ export function QuoteBuilder({
     }
   }
 
+  async function sendEmail() {
+    if (!emailTo || !result) return;
+    setEmailing(true);
+    try {
+      const res = await fetch(`/api/org/jobs/${jobId}/quote/email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailTo }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showError(data.error || "Failed to send email");
+      } else {
+        setEmailSent(true);
+      }
+    } catch {
+      showError("Network error");
+    } finally {
+      setEmailing(false);
+    }
+  }
+
   if (result) {
     return (
       <Card className="border-green-200 bg-green-50">
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-3">
           <p className="text-green-800 font-medium">Quote created</p>
-          <p className="text-green-600 text-sm mt-1">Total: {formatCents(totalCents)}</p>
-          <Button asChild className="mt-3 w-full h-12">
+          <p className="text-green-600 text-sm">Total: {formatCents(totalCents)}</p>
+          <Button asChild className="w-full h-12">
             <a href={`/m/jobs/${jobId}/present?quoteId=${result.quoteId}`}>
               Present to Customer
             </a>
           </Button>
+          <div className="border-t border-green-200 pt-3">
+            <p className="text-green-700 text-xs font-medium uppercase mb-2">Or email estimate to customer</p>
+            {emailSent ? (
+              <p className="text-green-700 text-sm">Estimate sent to {emailTo}</p>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="customer@email.com"
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  className="flex-1 text-sm bg-white"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={sendEmail}
+                  disabled={!emailTo || emailing}
+                  className="bg-white"
+                >
+                  {emailing ? "Sending..." : "Send"}
+                </Button>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     );
