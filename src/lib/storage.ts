@@ -46,6 +46,14 @@ export async function getSignedUrl(key: string): Promise<string | null> {
   return data.signedUrl;
 }
 
+/** Delete a file from Supabase Storage */
+export async function deleteFile(key: string): Promise<{ error?: string }> {
+  const supabase = await createSupabaseAdmin();
+  const { error } = await supabase.storage.from(BUCKET).remove([key]);
+  if (error) return { error: error.message };
+  return {};
+}
+
 /** Get signed URLs for multiple keys */
 export async function getSignedUrls(
   keys: string[]

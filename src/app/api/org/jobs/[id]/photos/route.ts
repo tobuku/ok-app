@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrgUser } from "@/lib/auth";
 import { tenantScope } from "@/lib/tenant";
-import { uploadPhoto, storageKey, getSignedUrls } from "@/lib/storage";
+import { uploadPhoto, storageKey, getSignedUrls, deleteFile } from "@/lib/storage";
 
 export async function POST(
   request: NextRequest,
@@ -91,4 +91,39 @@ export async function GET(
   }));
 
   return NextResponse.json({ photos: result });
+}
+
+/** DELETE /api/org/jobs/:id/photos — Delete a photo by photoId */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: jobId } = await params;
+  const userOrRes = await requireOrgUser(["LEADMAN", "ORG_ADMIN"], true);
+  if (userOrRes instanceof Response) return userOrRes;
+  const user = userOrRes;
+
+  const t = tenantScope({ orgId: user.orgId, actorUserId: user.id });
+
+  const { searchParams } = new URL(request.url);
+  const photoId = searchParams.get("photoId");
+  if (!photoId) {
+    return NextResponse.json({ error: "photoId is required" }, { status: 400 });
+  }
+
+  // Verify photo exists, belongs to this org and this job
+  const photo = await t.findFirst<{ id: string; storageKey: string }>("photo", {
+    where: { id: photoId, jobId },
+  });
+  if (!photo) {
+    return NextResponse.json({ error: "Photo not found" }, { status: 404 });
+  }
+
+  // Delete from storage
+  await deleteFile(photo.storageKey);
+
+  // Delete DB record
+  await t.delete("photo", { where: { id: photoId } });
+
+  return NextResponse.json({ deleted: photoId });
 }
