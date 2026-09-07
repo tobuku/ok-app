@@ -7,9 +7,10 @@ import { canTransition } from "@/lib/status";
 import { getSignedUrls } from "@/lib/storage";
 import Link from "next/link";
 import type { JobStatus } from "@prisma/client";
-import { ArrowLeft, Clock, MapPin, User, FileText, Camera, CreditCard, RotateCcw, AlertTriangle, Pencil } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, User, FileText, Camera, CreditCard, RotateCcw, AlertTriangle, Pencil, Trash2 } from "lucide-react";
 import { JobStatusButton } from "./status-button";
 import { JobEditForm } from "./edit-form";
+import { DeleteJobButton } from "./delete-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge, getStatusLabel } from "@/components/status-badge";
@@ -375,6 +376,15 @@ export default async function JobDetailPage({
                 Rebook This Customer
               </Link>
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Delete job — Dispatcher/Admin only */}
+      {(user.role === "DISPATCHER" || user.role === "ORG_ADMIN") && (
+        <Card className="mt-6 border-destructive/30">
+          <CardContent className="pt-6">
+            <DeleteJobButton jobId={job.id} />
           </CardContent>
         </Card>
       )}

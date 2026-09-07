@@ -5,7 +5,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import { showSuccess, showError } from "@/lib/toast";
 
 export function JobEditForm({
@@ -57,8 +56,6 @@ export function JobEditForm({
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="assigned-leadman">Assigned Leadman</Label>
@@ -99,7 +96,5 @@ export function JobEditForm({
             {saving ? "Saving..." : "Save Changes"}
           </Button>
         </form>
-      </CardContent>
-    </Card>
   );
 }

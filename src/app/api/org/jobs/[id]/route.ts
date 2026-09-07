@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrgUser } from "@/lib/auth";
 import { tenantScope } from "@/lib/tenant";
+import { prisma } from "@/lib/prisma";
+import { deleteFile } from "@/lib/storage";
 
 /** GET /api/org/jobs/:id */
 export async function GET(
@@ -61,4 +63,64 @@ export async function PATCH(
   const t = tenantScope({ orgId: user.orgId, actorUserId: user.id });
   const updated = await t.update("job", { where: { id }, data });
   return NextResponse.json(updated);
+}
+
+/** DELETE /api/org/jobs/:id — delete a job and all related records (Dispatcher, Org Admin) */
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await requireOrgUser(["DISPATCHER", "ORG_ADMIN"], true);
+  if (user instanceof Response) return user;
+
+  const { id } = await params;
+  const t = tenantScope({ orgId: user.orgId, actorUserId: user.id });
+
+  // Verify job exists in this org
+  const job = await t.findFirst<{ id: string }>("job", {
+    where: { id },
+    select: { id: true },
+  });
+  if (!job) {
+    return NextResponse.json({ error: "Job not found" }, { status: 404 });
+  }
+
+  // Delete photos from storage
+  const photos = await t.findMany<{ id: string; storageKey: string }>("photo", {
+    where: { jobId: id },
+  });
+  for (const photo of photos) {
+    await deleteFile(photo.storageKey).catch(() => {});
+  }
+
+  // Delete all related records in dependency order, then the job
+  await prisma.$transaction(async (tx) => {
+    // Quote lines (depend on quotes)
+    const quotes = await tx.quote.findMany({
+      where: { jobId: id, orgId: user.orgId },
+      select: { id: true },
+    });
+    const quoteIds = quotes.map((q) => q.id);
+    if (quoteIds.length > 0) {
+      await tx.quoteLine.deleteMany({ where: { quoteId: { in: quoteIds } } });
+    }
+    await tx.quote.deleteMany({ where: { jobId: id, orgId: user.orgId } });
+    await tx.payment.deleteMany({ where: { jobId: id, orgId: user.orgId } });
+    await tx.photo.deleteMany({ where: { jobId: id, orgId: user.orgId } });
+    await tx.jobNote.deleteMany({ where: { jobId: id, orgId: user.orgId } });
+    await tx.job.delete({ where: { id } });
+  });
+
+  // Audit log
+  const { auditLog } = await import("@/lib/audit");
+  await auditLog({
+    orgId: user.orgId,
+    actorUserId: user.id,
+    action: "DELETE",
+    entity: "job",
+    entityId: id,
+    meta: {},
+  });
+
+  return NextResponse.json({ deleted: id });
 }

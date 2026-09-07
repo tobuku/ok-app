@@ -200,7 +200,7 @@ export function QuoteBuilder({
               setEditingQuoteId(result.quoteId);
               setIsEditing(true);
             }}
-            className="w-full bg-white"
+            className="w-full"
           >
             Edit Quote
           </Button>
