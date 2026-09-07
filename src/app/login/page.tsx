@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -140,6 +141,12 @@ export default function LoginPage() {
             </form>
           </CardContent>
         </Card>
+
+        <p className="text-xs text-muted-foreground text-center mt-4">
+          <Link href="/terms" className="underline hover:text-foreground">Terms of Service</Link>
+          {" · "}
+          <Link href="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>
+        </p>
       </div>
     </div>
   );
