@@ -20,7 +20,7 @@ import { Separator } from "@/components/ui/separator";
 export const dynamic = "force-dynamic";
 
 const ALL_STATUSES: JobStatus[] = [
-  "NEW", "SCHEDULED", "EN_ROUTE", "ON_SITE", "QUOTED", "ACCEPTED",
+  "ESTIMATE", "NEW", "SCHEDULED", "ON_SITE", "QUOTED", "ACCEPTED",
   "DECLINED", "IN_PROGRESS", "COMPLETED", "PAID", "CANCELED",
 ];
 
@@ -331,7 +331,7 @@ export default async function JobDetailPage({
           </Card>
 
           {/* Timeline */}
-          {(job.enRouteAt || job.onSiteAt || job.completedAt || job.canceledAt) && (
+          {(job.onSiteAt || job.completedAt || job.canceledAt) && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -340,7 +340,6 @@ export default async function JobDetailPage({
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm space-y-1.5">
-                {job.enRouteAt && <p>En Route: {formatDate(job.enRouteAt)}</p>}
                 {job.onSiteAt && <p>On Site: {formatDate(job.onSiteAt)}</p>}
                 {job.completedAt && <p>Completed: {formatDate(job.completedAt)}</p>}
                 {job.canceledAt && (

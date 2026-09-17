@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const STATUS_CONFIG: Record<JobStatus, { label: string; className: string }> = {
+  ESTIMATE: { label: "Estimate", className: "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400" },
   NEW: { label: "New", className: "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300" },
   SCHEDULED: { label: "Scheduled", className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
   EN_ROUTE: { label: "En Route", className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" },
@@ -17,6 +18,7 @@ const STATUS_CONFIG: Record<JobStatus, { label: string; className: string }> = {
 };
 
 const BORDER_COLORS: Record<JobStatus, string> = {
+  ESTIMATE: "border-l-sky-500",
   NEW: "border-l-neutral-400",
   SCHEDULED: "border-l-blue-500",
   EN_ROUTE: "border-l-yellow-500",

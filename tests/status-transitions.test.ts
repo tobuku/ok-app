@@ -7,16 +7,16 @@ import { canTransition, assertTransition } from "../src/lib/status";
 
 describe("Job Status Transitions", () => {
   // Valid forward flow
+  it("ESTIMATE → SCHEDULED is valid", () => {
+    expect(canTransition("ESTIMATE", "SCHEDULED")).toBe(true);
+  });
+
   it("NEW → SCHEDULED is valid", () => {
     expect(canTransition("NEW", "SCHEDULED")).toBe(true);
   });
 
-  it("SCHEDULED → EN_ROUTE is valid", () => {
-    expect(canTransition("SCHEDULED", "EN_ROUTE")).toBe(true);
-  });
-
-  it("EN_ROUTE → ON_SITE is valid", () => {
-    expect(canTransition("EN_ROUTE", "ON_SITE")).toBe(true);
+  it("SCHEDULED → ON_SITE is valid", () => {
+    expect(canTransition("SCHEDULED", "ON_SITE")).toBe(true);
   });
 
   it("ON_SITE → QUOTED is valid", () => {
@@ -47,7 +47,7 @@ describe("Job Status Transitions", () => {
   // Cancellation from any active status
   it("any active status can transition to CANCELED", () => {
     const cancelable = [
-      "NEW", "SCHEDULED", "EN_ROUTE", "ON_SITE",
+      "ESTIMATE", "NEW", "SCHEDULED", "ON_SITE",
       "QUOTED", "ACCEPTED", "DECLINED", "IN_PROGRESS",
     ] as const;
     for (const s of cancelable) {
@@ -75,8 +75,8 @@ describe("Job Status Transitions", () => {
     expect(canTransition("SCHEDULED", "COMPLETED")).toBe(false);
   });
 
-  it("cannot go backwards: ON_SITE → EN_ROUTE", () => {
-    expect(canTransition("ON_SITE", "EN_ROUTE")).toBe(false);
+  it("cannot go backwards: ON_SITE → SCHEDULED", () => {
+    expect(canTransition("ON_SITE", "SCHEDULED")).toBe(false);
   });
 
   it("cannot go backwards: COMPLETED → IN_PROGRESS", () => {

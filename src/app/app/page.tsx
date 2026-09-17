@@ -20,9 +20,9 @@ type JobRow = {
 };
 
 const BOARD_COLUMNS: { status: JobStatus; label: string }[] = [
+  { status: "ESTIMATE", label: "Estimate" },
   { status: "NEW", label: "New" },
   { status: "SCHEDULED", label: "Scheduled" },
-  { status: "EN_ROUTE", label: "En Route" },
   { status: "ON_SITE", label: "On Site" },
   { status: "IN_PROGRESS", label: "In Progress" },
   { status: "COMPLETED", label: "Completed" },

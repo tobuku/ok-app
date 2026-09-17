@@ -23,9 +23,9 @@ type MapJob = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
+  ESTIMATE: "#0ea5e9",
   NEW: "#6b7280",
   SCHEDULED: "#3b82f6",
-  EN_ROUTE: "#8b5cf6",
   ON_SITE: "#f59e0b",
   QUOTED: "#f97316",
   ACCEPTED: "#10b981",

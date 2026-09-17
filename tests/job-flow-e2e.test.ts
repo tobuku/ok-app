@@ -2,7 +2,7 @@
  * Full Job Flow End-to-End Test
  *
  * Exercises the complete lifecycle through the tenant-scoped DB layer:
- *   Customer created → Job SCHEDULED → EN_ROUTE → ON_SITE →
+ *   Customer created → Job SCHEDULED → ON_SITE →
  *   Quote created (DRAFT) → PRESENTED → ACCEPTED (job → ACCEPTED) →
  *   Cash payment (job → PAID) → IN_PROGRESS → COMPLETED
  *
@@ -109,20 +109,8 @@ describe("Full Job Flow — End to End", () => {
     expect(job.jobNumber).toBe(jobNumber);
   });
 
-  it("Step 3: Transition SCHEDULED → EN_ROUTE", async () => {
-    assertTransition("SCHEDULED", "EN_ROUTE");
-    const t = tenantScope(orgALead);
-    const updated = (await t.update("job", {
-      where: { id: jobId },
-      data: { status: "EN_ROUTE", enRouteAt: new Date() },
-    })) as { status: string; enRouteAt: Date | null };
-
-    expect(updated.status).toBe("EN_ROUTE");
-    expect(updated.enRouteAt).toBeTruthy();
-  });
-
-  it("Step 4: Transition EN_ROUTE → ON_SITE", async () => {
-    assertTransition("EN_ROUTE", "ON_SITE");
+  it("Step 3: Transition SCHEDULED → ON_SITE", async () => {
+    assertTransition("SCHEDULED", "ON_SITE");
     const t = tenantScope(orgALead);
     const updated = (await t.update("job", {
       where: { id: jobId },
@@ -133,7 +121,7 @@ describe("Full Job Flow — End to End", () => {
     expect(updated.onSiteAt).toBeTruthy();
   });
 
-  it("Step 5: Create quote with line items (job → QUOTED)", async () => {
+  it("Step 4: Create quote with line items (job → QUOTED)", async () => {
     const lines = [
       { label: "1/2 Truck Load", qty: 1, unitCents: 22500 },
       { label: "Mattress Removal", qty: 2, unitCents: 3500 },
@@ -201,7 +189,7 @@ describe("Full Job Flow — End to End", () => {
     expect(job?.status).toBe("QUOTED");
   });
 
-  it("Step 6: Present quote (DRAFT → PRESENTED)", async () => {
+  it("Step 5: Present quote (DRAFT → PRESENTED)", async () => {
     const t = tenantScope(orgALead);
     await t.update("quote", {
       where: { id: quoteId },
@@ -212,7 +200,7 @@ describe("Full Job Flow — End to End", () => {
     expect(quote?.status).toBe("PRESENTED");
   });
 
-  it("Step 7: Accept quote (job → ACCEPTED)", async () => {
+  it("Step 6: Accept quote (job → ACCEPTED)", async () => {
     assertTransition("QUOTED", "ACCEPTED");
 
     await prisma.$transaction(async (tx) => {
@@ -238,7 +226,7 @@ describe("Full Job Flow — End to End", () => {
     expect(job?.status).toBe("ACCEPTED");
   });
 
-  it("Step 8: Cash payment (job → PAID)", async () => {
+  it("Step 7: Cash payment (job → PAID)", async () => {
     assertTransition("ACCEPTED", "PAID");
 
     const quote = await prisma.quote.findUnique({ where: { id: quoteId } });
@@ -273,7 +261,7 @@ describe("Full Job Flow — End to End", () => {
     expect(job?.status).toBe("PAID");
   });
 
-  it("Step 9: Transition PAID → IN_PROGRESS", async () => {
+  it("Step 8: Transition PAID → IN_PROGRESS", async () => {
     assertTransition("PAID", "IN_PROGRESS");
     const t = tenantScope(orgALead);
     const updated = (await t.update("job", {
@@ -284,7 +272,7 @@ describe("Full Job Flow — End to End", () => {
     expect(updated.status).toBe("IN_PROGRESS");
   });
 
-  it("Step 10: Transition IN_PROGRESS → COMPLETED", async () => {
+  it("Step 9: Transition IN_PROGRESS → COMPLETED", async () => {
     assertTransition("IN_PROGRESS", "COMPLETED");
     const t = tenantScope(orgALead);
     const updated = (await t.update("job", {
@@ -302,7 +290,6 @@ describe("Full Job Flow — Final State Verification", () => {
     const job = await prisma.job.findUnique({ where: { id: jobId } });
     expect(job).not.toBeNull();
     expect(job!.status).toBe("COMPLETED");
-    expect(job!.enRouteAt).toBeTruthy();
     expect(job!.onSiteAt).toBeTruthy();
     expect(job!.completedAt).toBeTruthy();
   });
@@ -371,8 +358,8 @@ describe("Full Job Flow — Tenant Isolation", () => {
 });
 
 describe("Full Job Flow — Invalid Transitions Blocked", () => {
-  it("Cannot skip SCHEDULED → ON_SITE (must go through EN_ROUTE)", () => {
-    expect(canTransition("SCHEDULED", "ON_SITE")).toBe(false);
+  it("Cannot skip SCHEDULED → QUOTED (must go through ON_SITE)", () => {
+    expect(canTransition("SCHEDULED", "QUOTED")).toBe(false);
   });
 
   it("Cannot skip ACCEPTED → IN_PROGRESS (must pay first)", () => {
@@ -384,8 +371,8 @@ describe("Full Job Flow — Invalid Transitions Blocked", () => {
   });
 
   it("Cannot create quote on SCHEDULED job", async () => {
-    // The API route checks: job must be ON_SITE, QUOTED, or DECLINED
-    const validQuoteStatuses = ["ON_SITE", "QUOTED", "DECLINED"];
+    // The API route checks: job must be ESTIMATE, ON_SITE, QUOTED, or DECLINED
+    const validQuoteStatuses = ["ESTIMATE", "ON_SITE", "QUOTED", "DECLINED"];
     expect(validQuoteStatuses.includes("SCHEDULED")).toBe(false);
   });
 
@@ -415,7 +402,7 @@ describe("Full Job Flow — Audit Trail", () => {
     const logs = await prisma.auditLog.findMany({
       where: { entityId: jobId, action: "UPDATE", entity: "job" },
     });
-    // EN_ROUTE, ON_SITE, IN_PROGRESS, COMPLETED = 4 updates via tenantScope
-    expect(logs.length).toBeGreaterThanOrEqual(4);
+    // ON_SITE, IN_PROGRESS, COMPLETED = 3 updates via tenantScope
+    expect(logs.length).toBeGreaterThanOrEqual(3);
   });
 });

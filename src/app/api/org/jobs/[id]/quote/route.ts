@@ -26,7 +26,7 @@ export async function POST(
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
-  if (job.status !== "ON_SITE" && job.status !== "QUOTED" && job.status !== "DECLINED") {
+  if (job.status !== "ESTIMATE" && job.status !== "ON_SITE" && job.status !== "QUOTED" && job.status !== "DECLINED") {
     return NextResponse.json(
       { error: `Cannot create quote in status ${job.status}` },
       { status: 400 }
@@ -89,7 +89,7 @@ export async function POST(
     }
 
     // Transition job to QUOTED if it's ON_SITE or DECLINED
-    if (job.status === "ON_SITE" || job.status === "DECLINED") {
+    if (job.status === "ESTIMATE" || job.status === "ON_SITE" || job.status === "DECLINED") {
       await tx.job.update({
         where: { id: jobId },
         data: { status: "QUOTED" },

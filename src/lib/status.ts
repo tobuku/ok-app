@@ -2,15 +2,17 @@
  * Job status transition guard.
  * Only allows valid transitions — prevents skipping steps.
  *
- * Flow: NEW → SCHEDULED → EN_ROUTE → ON_SITE → QUOTED → ACCEPTED → PAID → IN_PROGRESS → COMPLETED
+ * Flow: ESTIMATE → SCHEDULED → ON_SITE → QUOTED → ACCEPTED → PAID → IN_PROGRESS → COMPLETED
+ * Also: NEW → SCHEDULED (dispatcher-created jobs skip ESTIMATE)
  * Payment happens BEFORE loading (ACCEPTED → PAID), then work begins (PAID → IN_PROGRESS → COMPLETED).
  */
 import type { JobStatus } from "@prisma/client";
 
 const VALID_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
+  ESTIMATE: ["SCHEDULED", "CANCELED"],
   NEW: ["SCHEDULED", "CANCELED"],
-  SCHEDULED: ["EN_ROUTE", "CANCELED"],
-  EN_ROUTE: ["ON_SITE", "CANCELED"],
+  SCHEDULED: ["ON_SITE", "CANCELED"],
+  EN_ROUTE: ["ON_SITE", "CANCELED"], // legacy — kept for any old data
   ON_SITE: ["QUOTED", "CANCELED"],
   QUOTED: ["ACCEPTED", "DECLINED", "CANCELED"],
   ACCEPTED: ["PAID", "CANCELED"], // payment transitions to PAID via pay routes

@@ -143,10 +143,11 @@ Customer      id, orgId, name, phone, email, notes
 Address       id, orgId, customerId, line1, line2, city, state, zip, lat, lng
 Job           id, orgId, jobNumber (unique per org), customerId, addressId, status,
               scheduledDate, timeWindowStart/End, assignedToId, truckId?, notes,
-              source (PHONE|REFERRAL|REPEAT|OTHER), createdById,
+              source (PHONE|REFERRAL|REPEAT|FIELD_ESTIMATE|OTHER), createdById,
               enRouteAt, onSiteAt, completedAt, canceledAt, cancelReason
-JobStatus     NEW | SCHEDULED | EN_ROUTE | ON_SITE | QUOTED | ACCEPTED |
+JobStatus     ESTIMATE | NEW | SCHEDULED | ON_SITE | QUOTED | ACCEPTED |
               DECLINED | IN_PROGRESS | COMPLETED | PAID | CANCELED
+              (EN_ROUTE kept in Postgres enum but unused in app code)
 Photo         id, orgId, jobId, type (BEFORE|AFTER), storageKey, takenById, takenAt
 PriceBook     id, orgId, name, active
 PriceItem     id, orgId, priceBookId, kind (LOAD_FRACTION|ADDON|FEE), label,

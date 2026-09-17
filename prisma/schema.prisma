@@ -178,9 +178,10 @@ model Address {
 }
 
 enum JobStatus {
+  ESTIMATE
   NEW
   SCHEDULED
-  EN_ROUTE
+  EN_ROUTE // kept for Postgres compatibility — no longer used in app code
   ON_SITE
   QUOTED
   ACCEPTED
@@ -195,6 +196,7 @@ enum JobSource {
   PHONE
   REFERRAL
   REPEAT
+  FIELD_ESTIMATE
   OTHER
 }
 

@@ -22,7 +22,7 @@ import { CheckCircle2 } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 const LEADMAN_FLOW: JobStatus[] = [
-  "EN_ROUTE", "ON_SITE", "IN_PROGRESS", "COMPLETED",
+  "ON_SITE", "IN_PROGRESS", "COMPLETED",
 ];
 
 export default async function MobileJobDetailPage({
@@ -129,7 +129,7 @@ export default async function MobileJobDetailPage({
               )}
             </div>
             {/* SMS notify button (#8) */}
-            {job.customer.phone && ["EN_ROUTE", "COMPLETED"].includes(job.status) && (
+            {job.customer.phone && ["ON_SITE", "COMPLETED"].includes(job.status) && (
               <SmsNotifyLink
                 phone={job.customer.phone}
                 status={job.status}
@@ -198,9 +198,8 @@ export default async function MobileJobDetailPage({
           )}
 
           {/* Timestamps */}
-          {(job.enRouteAt || job.onSiteAt || job.completedAt) && (
+          {(job.onSiteAt || job.completedAt) && (
             <div className="text-xs text-muted-foreground space-y-1">
-              {job.enRouteAt && <p>En route: {new Date(job.enRouteAt).toLocaleTimeString()}</p>}
               {job.onSiteAt && <p>On site: {new Date(job.onSiteAt).toLocaleTimeString()}</p>}
               {job.completedAt && <p>Completed: {new Date(job.completedAt).toLocaleTimeString()}</p>}
             </div>
@@ -210,9 +209,9 @@ export default async function MobileJobDetailPage({
           <PhotoGallery jobId={job.id} />
 
           {/* Photo capture — BEFORE on site, AFTER after payment */}
-          {["ON_SITE", "QUOTED", "ACCEPTED", "DECLINED", "PAID", "IN_PROGRESS", "COMPLETED"].includes(job.status) && (
+          {["ESTIMATE", "ON_SITE", "QUOTED", "ACCEPTED", "DECLINED", "PAID", "IN_PROGRESS", "COMPLETED"].includes(job.status) && (
             <div className="space-y-2">
-              {["ON_SITE", "QUOTED", "ACCEPTED", "DECLINED"].includes(job.status) && (
+              {["ESTIMATE", "ON_SITE", "QUOTED", "ACCEPTED", "DECLINED"].includes(job.status) && (
                 <PhotoCapture jobId={job.id} type="before" />
               )}
               {["PAID", "IN_PROGRESS", "COMPLETED"].includes(job.status) && (
@@ -300,7 +299,7 @@ function SmsNotifyLink({
   orgName: string;
 }) {
   const messages: Record<string, string> = {
-    EN_ROUTE: `Hi! Your ${orgName} crew is on the way.`,
+    ON_SITE: `Hi! Your ${orgName} crew has arrived.`,
     COMPLETED: `Your ${orgName} job is complete. Thank you!`,
   };
   const msg = messages[status] || "";

@@ -4,8 +4,9 @@ import { tenantScope } from "@/lib/tenant";
 import { getOrgToday } from "@/lib/date-utils";
 import Link from "next/link";
 import type { JobStatus } from "@prisma/client";
-import { ChevronRight, MapPin } from "lucide-react";
+import { ChevronRight, MapPin, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { StatusBadge, getStatusBorderColor } from "@/components/status-badge";
 import { EmptyState } from "@/components/empty-state";
 import { cn } from "@/lib/utils";
@@ -49,16 +50,25 @@ export default async function TodayPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-1">Today&apos;s Jobs</h1>
-      <p className="text-sm text-muted-foreground mb-4">
-        {new Date(todayStr + "T12:00:00Z").toLocaleDateString("en-US", {
-          weekday: "long",
-          month: "long",
-          day: "numeric",
-          timeZone: user.timezone,
-        })}
-      </p>
-
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-xl font-bold mb-1">Today&apos;s Jobs</h1>
+          <p className="text-sm text-muted-foreground">
+            {new Date(todayStr + "T12:00:00Z").toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+              timeZone: user.timezone,
+            })}
+          </p>
+        </div>
+        <Button asChild size="sm">
+          <Link href="/m/estimate">
+            <Plus className="h-4 w-4 mr-1" />
+            New Estimate
+          </Link>
+        </Button>
+      </div>
       {jobs.length === 0 ? (
         <EmptyState
           title="No jobs scheduled for today"

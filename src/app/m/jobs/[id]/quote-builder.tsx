@@ -48,8 +48,8 @@ export function QuoteBuilder({
   const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Can only build quotes in ON_SITE, QUOTED, or DECLINED status
-  const canQuote = ["ON_SITE", "QUOTED", "DECLINED"].includes(jobStatus);
+  // Can only build quotes in ESTIMATE, ON_SITE, QUOTED, or DECLINED status
+  const canQuote = ["ESTIMATE", "ON_SITE", "QUOTED", "DECLINED"].includes(jobStatus);
 
   useEffect(() => {
     const loadData = async () => {

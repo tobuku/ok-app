@@ -22,8 +22,8 @@ type CalendarJob = {
 };
 
 const STATUS_VARIANT: Partial<Record<JobStatus, "info" | "warning" | "success" | "default">> = {
+  ESTIMATE: "default",
   SCHEDULED: "info",
-  EN_ROUTE: "warning",
   ON_SITE: "warning",
   IN_PROGRESS: "info",
   COMPLETED: "success",

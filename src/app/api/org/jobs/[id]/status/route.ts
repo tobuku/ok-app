@@ -49,7 +49,6 @@ export async function POST(
 
   // Build timestamp fields based on transition
   const timestamps: Record<string, unknown> = {};
-  if (newStatus === "EN_ROUTE") timestamps.enRouteAt = new Date();
   if (newStatus === "ON_SITE") timestamps.onSiteAt = new Date();
   if (newStatus === "COMPLETED") timestamps.completedAt = new Date();
   if (newStatus === "CANCELED") {
