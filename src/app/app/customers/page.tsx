@@ -2,7 +2,7 @@ import { resolveAuth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { tenantScope } from "@/lib/tenant";
 import Link from "next/link";
-import { Plus, Users } from "lucide-react";
+import { ChevronRight, Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
@@ -60,15 +60,23 @@ export default async function CustomersPage() {
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead className="text-right">Jobs</TableHead>
+                <TableHead className="w-8"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {customers.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
+                <TableRow key={c.id} className="cursor-pointer hover:bg-accent/50">
+                  <TableCell className="font-medium">
+                    <Link href={`/app/customers/${c.id}`} className="block">{c.name}</Link>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{c.phone || "-"}</TableCell>
                   <TableCell className="text-muted-foreground">{c.email || "-"}</TableCell>
                   <TableCell className="text-right text-muted-foreground">{c._count.jobs}</TableCell>
+                  <TableCell>
+                    <Link href={`/app/customers/${c.id}`}>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+                    </Link>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

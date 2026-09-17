@@ -13,10 +13,12 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status");
   const date = searchParams.get("date"); // YYYY-MM-DD
   const assignedTo = searchParams.get("assignedTo");
+  const customerId = searchParams.get("customerId");
 
   const where: Record<string, unknown> = {};
   if (status) where.status = status;
   if (assignedTo) where.assignedToId = assignedTo;
+  if (customerId) where.customerId = customerId;
   if (user.role === "LEADMAN") where.assignedToId = user.id;
 
   if (date) {

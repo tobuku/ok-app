@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ClipboardList, History, User } from "lucide-react";
+import { Calendar, ClipboardList, History, User } from "lucide-react";
 
 const tabs = [
   { href: "/m", label: "Today", icon: ClipboardList },
+  { href: "/m/week", label: "Week", icon: Calendar },
   { href: "/m/history", label: "History", icon: History },
   { href: "/m/profile", label: "Profile", icon: User },
 ];
@@ -20,7 +21,7 @@ export function MobileBottomNav() {
         {tabs.map((tab) => {
           const isActive = tab.href === "/m"
             ? pathname === "/m" || pathname.startsWith("/m/jobs")
-            : pathname.startsWith(tab.href);
+            : pathname === tab.href || (tab.href !== "/m" && pathname.startsWith(tab.href + "/"));
           return (
             <Link
               key={tab.href}
