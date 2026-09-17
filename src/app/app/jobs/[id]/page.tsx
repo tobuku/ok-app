@@ -7,7 +7,7 @@ import { canTransition } from "@/lib/status";
 import { getSignedUrls } from "@/lib/storage";
 import Link from "next/link";
 import type { JobStatus } from "@prisma/client";
-import { ArrowLeft, Clock, MapPin, User, FileText, Camera, CreditCard, RotateCcw, AlertTriangle, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, User, FileText, Camera, CreditCard, RotateCcw, AlertTriangle, Pencil, Trash2, Mail, Eye } from "lucide-react";
 import { JobStatusButton } from "./status-button";
 import { JobEditForm } from "./edit-form";
 import { DeleteJobButton } from "./delete-button";
@@ -95,12 +95,21 @@ export default async function JobDetailPage({
     id: string;
     status: string;
     totalCents: number;
+    viewedAt: string | null;
+    customerEmail: string | null;
   }>("quote", {
     where: { jobId: job.id },
     orderBy: { createdAt: "desc" },
     take: 1,
   });
   const latestQuote = quotes[0] ?? null;
+
+  // Email logs for this job
+  const emailLogs = await prisma.emailLog.findMany({
+    where: { jobId: job.id, orgId: user.orgId, template: "quote_estimate" },
+    orderBy: { sentAt: "desc" },
+    take: 5,
+  });
 
   const quoteLines = latestQuote
     ? await t.findMany<{
@@ -270,6 +279,41 @@ export default async function JobDetailPage({
                     <span className="font-mono">{formatCents(latestQuote.totalCents)}</span>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Estimate tracking — email sent / customer viewed */}
+          {(emailLogs.length > 0 || latestQuote?.viewedAt) && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Estimate Tracking
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {emailLogs.map((log) => (
+                  <div key={log.id} className="flex items-center gap-2 text-sm">
+                    <Mail className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                    <span>
+                      {log.status === "sent" ? "Emailed" : "Email failed"} to{" "}
+                      <span className="font-medium">{log.to}</span>
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {formatDate(log.sentAt)}
+                    </span>
+                  </div>
+                ))}
+                {latestQuote?.viewedAt && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Eye className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                    <span>Customer viewed estimate</span>
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {formatDate(latestQuote.viewedAt)}
+                    </span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

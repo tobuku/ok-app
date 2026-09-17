@@ -29,6 +29,14 @@ export default async function PublicQuotePage({
 
   if (!quote) notFound();
 
+  // Track first view
+  if (!quote.viewedAt) {
+    await prisma.quote.update({
+      where: { id: quote.id },
+      data: { viewedAt: new Date() },
+    });
+  }
+
   const org = quote.organization;
   let logoUrl: string | null = null;
   if (org.logoKey) {

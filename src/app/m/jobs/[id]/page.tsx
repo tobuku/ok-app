@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { canTransition } from "@/lib/status";
 import Link from "next/link";
 import type { JobStatus } from "@prisma/client";
-import { ArrowLeft, Phone, MapPin, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Phone, MapPin, AlertTriangle, Mail, Eye } from "lucide-react";
 import { MobileStatusButton } from "./mobile-status-button";
 import { PhotoCapture } from "./photo-capture";
 import { PhotoGallery } from "./photo-gallery";
@@ -79,6 +79,20 @@ export default async function MobileJobDetailPage({
     acceptedQuoteTotal = acceptedQuote.totalCents;
     acceptedQuoteId = acceptedQuote.id;
   }
+
+  // Email logs for this job
+  const emailLogs = await prisma.emailLog.findMany({
+    where: { jobId: id, orgId: user.orgId, template: "quote_estimate" },
+    orderBy: { sentAt: "desc" },
+    take: 5,
+  });
+
+  // Get latest quote viewedAt
+  const latestQuote = await t.findFirst<{ id: string; viewedAt: string | null; customerEmail: string | null }>("quote", {
+    where: { jobId: id },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, viewedAt: true, customerEmail: true },
+  });
 
   // Address warnings from past jobs
   let addressWarnings: { note: string; createdAt: Date }[] = [];
@@ -226,6 +240,46 @@ export default async function MobileJobDetailPage({
             jobStatus={job.status}
             taxRateBps={org?.taxRateBps ?? 0}
           />
+
+          {/* Estimate tracking — email sent / customer viewed */}
+          {(emailLogs.length > 0 || latestQuote?.viewedAt) && (
+            <Card>
+              <CardContent className="pt-5 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase">Estimate Status</p>
+                {emailLogs.map((log) => (
+                  <div key={log.id} className="flex items-center gap-2 text-sm">
+                    <Mail className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                    <span className="text-foreground">
+                      {log.status === "sent" ? "Emailed" : "Email failed"} to{" "}
+                      <span className="font-medium">{log.to}</span>
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {new Date(log.sentAt).toLocaleDateString("en-US", {
+                        month: "short", day: "numeric",
+                      })}{" "}
+                      {new Date(log.sentAt).toLocaleTimeString("en-US", {
+                        hour: "numeric", minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                ))}
+                {latestQuote?.viewedAt && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Eye className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                    <span className="text-foreground">Customer viewed estimate</span>
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {new Date(latestQuote.viewedAt).toLocaleDateString("en-US", {
+                        month: "short", day: "numeric",
+                      })}{" "}
+                      {new Date(latestQuote.viewedAt).toLocaleTimeString("en-US", {
+                        hour: "numeric", minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Payment — now on ACCEPTED status (pay before loading) (#2) */}
           {job.status === "ACCEPTED" && acceptedQuoteTotal > 0 && (
