@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { showError } from "@/lib/toast";
+import { Share2, Printer, FileText } from "lucide-react";
 
 type PriceItem = {
   id: string;
@@ -204,6 +205,10 @@ export function QuoteBuilder({
           >
             Edit Quote
           </Button>
+          <div className="border-t border-green-200 dark:border-green-800 pt-3">
+            <p className="text-foreground text-xs font-medium uppercase mb-2">Print or share estimate</p>
+            <EstimateActions jobId={jobId} orgName="" />
+          </div>
           <div className="border-t border-green-200 dark:border-green-800 pt-3">
             <p className="text-foreground text-xs font-medium uppercase mb-2">Or email estimate to customer</p>
             {emailSent ? (
@@ -466,5 +471,88 @@ export function QuoteBuilder({
         </Button>
       </CardContent>
     </Card>
+  );
+}
+
+function EstimateActions({ jobId }: { jobId: string; orgName: string }) {
+  const estimateUrl = `/api/org/jobs/${jobId}/estimate`;
+
+  async function handleShare() {
+    try {
+      const res = await fetch(estimateUrl);
+      if (!res.ok) {
+        showError("Failed to generate estimate");
+        return;
+      }
+      const blob = await res.blob();
+      const file = new File([blob], `estimate-${jobId}.html`, {
+        type: "text/html",
+      });
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          title: "Estimate",
+          files: [file],
+        });
+      } else if (navigator.share) {
+        await navigator.share({
+          title: "Estimate",
+          url: estimateUrl,
+        });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.name;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch {
+      // User cancelled share
+    }
+  }
+
+  function handlePrint() {
+    const win = window.open(estimateUrl, "_blank");
+    if (win) {
+      win.addEventListener("load", () => win.print());
+    }
+  }
+
+  return (
+    <div className="flex gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="flex-1 min-h-[44px] bg-background"
+        onClick={handleShare}
+      >
+        <Share2 className="h-4 w-4 mr-1" />
+        Share
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="flex-1 min-h-[44px] bg-background"
+        onClick={handlePrint}
+      >
+        <Printer className="h-4 w-4 mr-1" />
+        Print
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="flex-1 min-h-[44px] bg-background"
+        asChild
+      >
+        <a href={estimateUrl} target="_blank" rel="noopener noreferrer">
+          <FileText className="h-4 w-4 mr-1" />
+          View
+        </a>
+      </Button>
+    </div>
   );
 }
