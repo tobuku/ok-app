@@ -182,12 +182,12 @@ export function QuoteBuilder({
 
   if (result && !isEditing) {
     return (
-      <Card className="border-green-200 bg-green-50">
+      <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/40">
         <CardContent className="p-4 space-y-3">
-          <p className="text-green-800 font-medium">
+          <p className="text-green-800 dark:text-green-400 font-medium">
             {editingQuoteId ? "Quote updated" : "Quote created"}
           </p>
-          <p className="text-green-600 text-sm">Total: {formatCents(totalCents)}</p>
+          <p className="text-green-600 dark:text-green-500 text-sm">Total: {formatCents(totalCents)}</p>
           <Button asChild className="w-full h-12">
             <a href={`/m/jobs/${jobId}/present?quoteId=${result.quoteId}`}>
               Present to Customer
@@ -204,10 +204,10 @@ export function QuoteBuilder({
           >
             Edit Quote
           </Button>
-          <div className="border-t border-green-200 pt-3">
-            <p className="text-green-700 text-xs font-medium uppercase mb-2">Or email estimate to customer</p>
+          <div className="border-t border-green-200 dark:border-green-800 pt-3">
+            <p className="text-foreground text-xs font-medium uppercase mb-2">Or email estimate to customer</p>
             {emailSent ? (
-              <p className="text-green-700 text-sm">Estimate sent to {emailTo}</p>
+              <p className="text-green-700 dark:text-green-400 text-sm">Estimate sent to {emailTo}</p>
             ) : (
               <div className="flex gap-2">
                 <Input
@@ -215,14 +215,13 @@ export function QuoteBuilder({
                   placeholder="customer@email.com"
                   value={emailTo}
                   onChange={(e) => setEmailTo(e.target.value)}
-                  className="flex-1 text-sm bg-white"
+                  className="flex-1 text-sm bg-background text-foreground placeholder:text-muted-foreground"
                 />
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   onClick={sendEmail}
                   disabled={!emailTo || emailing}
-                  className="bg-white"
                 >
                   {emailing ? "Sending..." : "Send"}
                 </Button>
