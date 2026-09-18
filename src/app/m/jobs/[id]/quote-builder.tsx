@@ -81,6 +81,8 @@ export function QuoteBuilder({
               })
             );
             setLines(restored);
+            // Show result card immediately so "Present to Customer" is accessible
+            setResult({ quoteId: q.id });
           }
         }
       } catch {
