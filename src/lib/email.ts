@@ -67,7 +67,7 @@ type ReceiptData = {
   discountReason?: string | null;
   taxCents: number;
   totalCents: number;
-  paymentMethod: "CARD" | "CASH";
+  paymentMethod: "CARD" | "CASH" | "CHECK";
   paidAt: Date;
 };
 
@@ -145,7 +145,7 @@ function buildReceiptHtml(data: ReceiptData): string {
       </table>
 
       <div style="margin-top:16px;padding:12px;background:#f0fdf4;border-radius:8px;text-align:center;">
-        <p style="margin:0;color:#166534;font-weight:600;">Paid by ${data.paymentMethod === "CARD" ? "Card" : "Cash"}</p>
+        <p style="margin:0;color:#166534;font-weight:600;">Paid by ${data.paymentMethod === "CARD" ? "Card" : data.paymentMethod === "CHECK" ? "Check" : "Cash"}</p>
       </div>
     </div>
 

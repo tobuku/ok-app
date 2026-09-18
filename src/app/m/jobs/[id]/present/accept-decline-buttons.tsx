@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { showError } from "@/lib/toast";
 import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
-import { CreditCard, Banknote } from "lucide-react";
+import { CreditCard, Banknote, FileCheck } from "lucide-react";
 
 export function AcceptDeclineButtons({
   quoteId,
@@ -87,15 +87,16 @@ export function AcceptDeclineButtons({
     }
   }
 
-  /** Step 2b: Pay cash */
-  async function handleCash() {
-    if (!confirm(`Record $${(totalCents / 100).toFixed(2)} paid in cash?`)) return;
+  /** Step 2b: Pay cash or check */
+  async function handleOffline(payMethod: "CASH" | "CHECK") {
+    const label = payMethod === "CHECK" ? "check" : "cash";
+    if (!confirm(`Record $${(totalCents / 100).toFixed(2)} paid by ${label}?`)) return;
     setActing(true);
     try {
       const res = await fetch(`/api/org/jobs/${jobId}/pay/cash`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amountCents: totalCents }),
+        body: JSON.stringify({ amountCents: totalCents, method: payMethod }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -202,12 +203,21 @@ export function AcceptDeclineButtons({
         )}
 
         <Button
-          onClick={handleCash}
+          onClick={() => handleOffline("CASH")}
           disabled={acting}
           className="w-full h-14 text-lg font-bold bg-green-600 hover:bg-green-700 text-white"
         >
           <Banknote className="h-5 w-5 mr-2" />
           {acting ? "Recording..." : "Pay Cash"}
+        </Button>
+
+        <Button
+          onClick={() => handleOffline("CHECK")}
+          disabled={acting}
+          className="w-full h-14 text-lg font-bold bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          <FileCheck className="h-5 w-5 mr-2" />
+          {acting ? "Recording..." : "Pay by Check"}
         </Button>
 
         {!stripeConnected && (

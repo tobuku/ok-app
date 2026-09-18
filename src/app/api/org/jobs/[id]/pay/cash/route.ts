@@ -1,7 +1,8 @@
 /**
- * POST /api/org/jobs/:id/pay/cash — Record a cash payment
+ * POST /api/org/jobs/:id/pay/cash — Record a cash or check payment
  * Leadman or Org Admin. Job must be ACCEPTED (pay before loading).
  * Transitions job to PAID. Creates Payment record + sends receipt email.
+ * Body: { amountCents?: number, method?: "CASH" | "CHECK" }
  */
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrgUser } from "@/lib/auth";
@@ -61,6 +62,8 @@ export async function POST(
   const body = await request.json().catch(() => ({}));
   const amountCents =
     typeof body.amountCents === "number" ? body.amountCents : quote.totalCents;
+  const method: "CASH" | "CHECK" =
+    body.method === "CHECK" ? "CHECK" : "CASH";
 
   const now = new Date();
 
@@ -71,7 +74,7 @@ export async function POST(
         orgId: user.orgId,
         jobId,
         quoteId: quote.id,
-        method: "CASH",
+        method,
         status: "SUCCEEDED",
         amountCents,
         receivedById: user.id,
@@ -90,10 +93,10 @@ export async function POST(
   await auditLog({
     orgId: user.orgId,
     actorUserId: user.id,
-    action: "PAYMENT_CASH",
+    action: method === "CHECK" ? "PAYMENT_CHECK" : "PAYMENT_CASH",
     entity: "payment",
     entityId: payment.id,
-    meta: { jobId, amountCents },
+    meta: { jobId, amountCents, method },
   });
 
   // Send receipt email if customer email is available
@@ -132,7 +135,7 @@ export async function POST(
       discountReason: quote.discountReason,
       taxCents: quote.taxCents,
       totalCents: quote.totalCents,
-      paymentMethod: "CASH",
+      paymentMethod: method,
       paidAt: now,
     }).catch((err) => console.error("Receipt email failed:", err));
   }

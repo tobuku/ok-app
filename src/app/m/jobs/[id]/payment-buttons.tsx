@@ -16,7 +16,7 @@ export function PaymentButtons({
   stripeConnected: boolean;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState<"card" | "cash" | null>(null);
+  const [loading, setLoading] = useState<"card" | "cash" | "check" | null>(null);
   const [cardUrl, setCardUrl] = useState<string | null>(null);
 
   async function handleCard() {
@@ -39,15 +39,16 @@ export function PaymentButtons({
     }
   }
 
-  async function handleCash() {
-    if (!confirm(`Record $${(totalCents / 100).toFixed(2)} paid in cash?`)) return;
+  async function handleOffline(payMethod: "CASH" | "CHECK") {
+    const label = payMethod === "CHECK" ? "check" : "cash";
+    if (!confirm(`Record $${(totalCents / 100).toFixed(2)} paid by ${label}?`)) return;
 
-    setLoading("cash");
+    setLoading(payMethod === "CHECK" ? "check" : "cash");
     try {
       const res = await fetch(`/api/org/jobs/${jobId}/pay/cash`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amountCents: totalCents }),
+        body: JSON.stringify({ amountCents: totalCents, method: payMethod }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -109,11 +110,19 @@ export function PaymentButtons({
       )}
 
       <Button
-        onClick={handleCash}
+        onClick={() => handleOffline("CASH")}
         disabled={loading !== null}
         className="w-full h-12 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white"
       >
         {loading === "cash" ? "Recording..." : "Paid Cash"}
+      </Button>
+
+      <Button
+        onClick={() => handleOffline("CHECK")}
+        disabled={loading !== null}
+        className="w-full h-12 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+      >
+        {loading === "check" ? "Recording..." : "Paid Check"}
       </Button>
 
       {!stripeConnected && (
