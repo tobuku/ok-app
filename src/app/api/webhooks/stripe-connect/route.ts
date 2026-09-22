@@ -11,6 +11,7 @@ import { constructConnectWebhookEvent } from "@/lib/stripe-connect";
 import { auditLog } from "@/lib/audit";
 import { sendReceipt } from "@/lib/email";
 import { getSignedUrl } from "@/lib/storage";
+import { randomBytes } from "crypto";
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
@@ -45,11 +46,13 @@ export async function POST(request: NextRequest) {
     const now = new Date();
 
     // Update payment record + transition job
-    await prisma.$transaction(async (tx) => {
+    const receiptTokenResult = await prisma.$transaction(async (tx) => {
       // Find the pending payment by stripeSessionId
       const payment = await tx.payment.findFirst({
         where: { stripeSessionId: session.id, orgId },
       });
+
+      const receiptToken = randomBytes(24).toString("base64url");
 
       if (payment) {
         await tx.payment.update({
@@ -57,9 +60,7 @@ export async function POST(request: NextRequest) {
           data: {
             status: "SUCCEEDED",
             stripePaymentIntentId: paymentIntentId,
-            applicationFeeCents: session.total_details?.amount_discount
-              ? undefined
-              : undefined,
+            receiptToken: payment.receiptToken ?? receiptToken,
             paidAt: now,
           },
         });
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
             amountCents: session.amount_total ?? 0,
             stripeSessionId: session.id,
             stripePaymentIntentId: paymentIntentId,
+            receiptToken,
             receivedById: receivedById || "",
             paidAt: now,
           },
@@ -92,6 +94,8 @@ export async function POST(request: NextRequest) {
           data: { status: "PAID" },
         });
       }
+
+      return payment?.receiptToken ?? receiptToken;
     });
 
     await auditLog({
@@ -123,6 +127,7 @@ export async function POST(request: NextRequest) {
       }
 
       sendReceipt({
+        receiptToken: receiptTokenResult,
         orgId,
         jobId,
         orgName: org.name,

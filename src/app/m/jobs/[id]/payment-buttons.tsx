@@ -5,15 +5,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { showError } from "@/lib/toast";
+import { PaymentHandoff } from "./payment-handoff";
 
 export function PaymentButtons({
   jobId,
   totalCents,
   stripeConnected,
+  customerPhone,
 }: {
   jobId: string;
   totalCents: number;
   stripeConnected: boolean;
+  customerPhone: string | null;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState<"card" | "cash" | "check" | null>(null);
@@ -66,24 +69,7 @@ export function PaymentButtons({
   if (cardUrl) {
     return (
       <div className="space-y-3">
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-4 text-center">
-            <p className="text-primary font-medium mb-2">Payment link ready</p>
-            <Button asChild>
-              <a
-                href={cardUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="h-12"
-              >
-                Open Payment Page
-              </a>
-            </Button>
-            <p className="text-xs text-primary/70 mt-2">
-              Show this to the customer or share the link
-            </p>
-          </CardContent>
-        </Card>
+        <PaymentHandoff checkoutUrl={cardUrl} customerPhone={customerPhone} />
         <Button
           variant="link"
           onClick={() => { setCardUrl(null); setLoading(null); }}

@@ -69,6 +69,7 @@ type ReceiptData = {
   totalCents: number;
   paymentMethod: "CARD" | "CASH" | "CHECK";
   paidAt: Date;
+  receiptToken?: string | null;
 };
 
 function buildReceiptHtml(data: ReceiptData): string {
@@ -146,7 +147,13 @@ function buildReceiptHtml(data: ReceiptData): string {
 
       <div style="margin-top:16px;padding:12px;background:#f0fdf4;border-radius:8px;text-align:center;">
         <p style="margin:0;color:#166534;font-weight:600;">Paid by ${data.paymentMethod === "CARD" ? "Card" : data.paymentMethod === "CHECK" ? "Check" : "Cash"}</p>
-      </div>
+      </div>${data.receiptToken ? `
+
+      <div style="margin-top:16px;text-align:center;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/receipt/${data.receiptToken}" style="display:inline-block;background:#2563eb;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+          View Receipt Online
+        </a>
+      </div>` : ""}
     </div>
 
     <p style="text-align:center;color:#9ca3af;font-size:12px;margin-top:16px;">

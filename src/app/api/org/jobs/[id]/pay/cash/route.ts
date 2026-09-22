@@ -12,6 +12,7 @@ import { assertTransition } from "@/lib/status";
 import { auditLog } from "@/lib/audit";
 import { sendReceipt } from "@/lib/email";
 import { getSignedUrl } from "@/lib/storage";
+import { randomBytes } from "crypto";
 import type { JobStatus } from "@prisma/client";
 
 export async function POST(
@@ -77,6 +78,7 @@ export async function POST(
         method,
         status: "SUCCEEDED",
         amountCents,
+        receiptToken: randomBytes(24).toString("base64url"),
         receivedById: user.id,
         paidAt: now,
       },
@@ -119,8 +121,8 @@ export async function POST(
       logoUrl = await getSignedUrl(org.logoKey);
     }
 
-    // Fire-and-forget — don't block the response on email
     sendReceipt({
+      receiptToken: payment.receiptToken,
       orgId: user.orgId,
       jobId,
       orgName: org?.name ?? "Service Provider",

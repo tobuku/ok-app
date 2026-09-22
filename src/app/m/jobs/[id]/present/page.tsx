@@ -38,6 +38,13 @@ export default async function PresentQuotePage({
   });
   if (!org) redirect("/m");
 
+  // Get customer phone for payment handoff
+  const job = await t.findFirst<{ customer: { phone: string | null } }>("job", {
+    where: { id: jobId },
+    select: { customer: { select: { phone: true } } },
+  });
+  const customerPhone = job?.customer?.phone ?? null;
+
   let logoUrl: string | null = null;
   if (org.logoKey) {
     logoUrl = await getSignedUrl(org.logoKey);
@@ -171,6 +178,7 @@ export default async function PresentQuotePage({
               jobId={jobId}
               totalCents={quote.totalCents}
               stripeConnected={!!org.stripeConnectAccountId}
+              customerPhone={customerPhone}
             />
           ) : quoteStatus === "ACCEPTED" ? (
             <div className="space-y-3">

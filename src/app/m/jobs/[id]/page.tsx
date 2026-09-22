@@ -80,6 +80,14 @@ export default async function MobileJobDetailPage({
     acceptedQuoteId = acceptedQuote.id;
   }
 
+  // Get receipt token for succeeded payment
+  const succeededPayment = await prisma.payment.findFirst({
+    where: { jobId: id, orgId: user.orgId, status: "SUCCEEDED" },
+    select: { receiptToken: true },
+    orderBy: { paidAt: "desc" },
+  });
+  const receiptToken = succeededPayment?.receiptToken ?? null;
+
   // Email logs for this job
   const emailLogs = await prisma.emailLog.findMany({
     where: { jobId: id, orgId: user.orgId, template: "quote_estimate" },
@@ -287,6 +295,7 @@ export default async function MobileJobDetailPage({
               jobId={job.id}
               totalCents={acceptedQuoteTotal}
               stripeConnected={!!org?.stripeConnectAccountId}
+              customerPhone={job.customer.phone}
             />
           )}
 
@@ -299,7 +308,7 @@ export default async function MobileJobDetailPage({
                 <p className="text-green-600 dark:text-green-500 text-sm mt-1">Ready to load</p>
               </div>
               {acceptedQuoteId && (
-                <InvoiceActions jobId={job.id} orgName={org?.name ?? ""} />
+                <InvoiceActions jobId={job.id} orgName={org?.name ?? ""} receiptToken={receiptToken} customerPhone={job.customer.phone} />
               )}
             </div>
           )}
@@ -312,7 +321,7 @@ export default async function MobileJobDetailPage({
                 <p className="text-green-800 dark:text-green-400 font-medium text-lg">Job Complete</p>
               </div>
               {acceptedQuoteId && (
-                <InvoiceActions jobId={job.id} orgName={org?.name ?? ""} />
+                <InvoiceActions jobId={job.id} orgName={org?.name ?? ""} receiptToken={receiptToken} customerPhone={job.customer.phone} />
               )}
             </div>
           )}

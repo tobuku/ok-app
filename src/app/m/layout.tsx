@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { OnboardingTour } from "@/components/onboarding-tour";
 import { mobileTourSteps } from "@/lib/tour-definitions";
+import { SwRegister } from "@/components/sw-register";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,7 @@ export default async function MobileLayout({
       <main className="flex-1 p-4 pb-20">{children}</main>
       <MobileBottomNav />
       <OnboardingTour tourId="mobile" steps={mobileTourSteps} />
+      <SwRegister />
     </div>
   );
 }

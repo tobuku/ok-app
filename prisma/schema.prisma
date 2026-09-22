@@ -379,6 +379,7 @@ model Payment {
   applicationFeeCents    Int?
   stripeSessionId        String?
   stripePaymentIntentId  String?
+  receiptToken           String?       @unique
   receivedById           String
   paidAt                 DateTime?
   createdAt              DateTime      @default(now())

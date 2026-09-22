@@ -29,6 +29,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#111827" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-NP67BM8MHH"
           strategy="afterInteractive"

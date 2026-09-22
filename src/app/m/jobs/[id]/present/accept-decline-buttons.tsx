@@ -9,17 +9,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { showError } from "@/lib/toast";
 import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
 import { CreditCard, Banknote, FileCheck } from "lucide-react";
+import { PaymentHandoff } from "../payment-handoff";
 
 export function AcceptDeclineButtons({
   quoteId,
   jobId,
   totalCents,
   stripeConnected,
+  customerPhone,
 }: {
   quoteId: string;
   jobId: string;
   totalCents: number;
   stripeConnected: boolean;
+  customerPhone: string | null;
 }) {
   const router = useRouter();
   const [acting, setActing] = useState(false);
@@ -74,13 +77,10 @@ export function AcceptDeclineButtons({
         setActing(false);
         return;
       }
-      // Redirect customer to Stripe Checkout
       if (data.url) {
-        window.location.href = data.url;
-      } else {
         setCardUrl(data.url);
-        setActing(false);
       }
+      setActing(false);
     } catch {
       showError("Network error");
       setActing(false);
@@ -161,23 +161,6 @@ export function AcceptDeclineButtons({
 
   // --- Payment phase (quote already accepted) ---
   if (phase === "pay") {
-    if (cardUrl) {
-      return (
-        <div className="space-y-3">
-          <Card className="border-primary/20 bg-primary/5">
-            <CardContent className="p-4 text-center">
-              <p className="text-primary font-medium mb-2">Payment link ready</p>
-              <Button asChild>
-                <a href={cardUrl} target="_blank" rel="noopener noreferrer" className="h-12">
-                  Open Payment Page
-                </a>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
-
     return (
       <div className="space-y-4">
         <Card className="border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800">
@@ -189,17 +172,23 @@ export function AcceptDeclineButtons({
           </CardContent>
         </Card>
 
-        <p className="text-sm font-medium text-center text-foreground">How would you like to pay?</p>
+        {cardUrl ? (
+          <PaymentHandoff checkoutUrl={cardUrl} customerPhone={customerPhone} />
+        ) : (
+          <>
+            <p className="text-sm font-medium text-center text-foreground">How would you like to pay?</p>
 
-        {stripeConnected && (
-          <Button
-            onClick={handleCard}
-            disabled={acting}
-            className="w-full h-14 text-lg font-bold"
-          >
-            <CreditCard className="h-5 w-5 mr-2" />
-            {acting ? "Setting up..." : "Pay by Card"}
-          </Button>
+            {stripeConnected && (
+              <Button
+                onClick={handleCard}
+                disabled={acting}
+                className="w-full h-14 text-lg font-bold"
+              >
+                <CreditCard className="h-5 w-5 mr-2" />
+                {acting ? "Setting up..." : "Pay by Card"}
+              </Button>
+            )}
+          </>
         )}
 
         <Button
@@ -220,7 +209,7 @@ export function AcceptDeclineButtons({
           {acting ? "Recording..." : "Pay by Check"}
         </Button>
 
-        {!stripeConnected && (
+        {!stripeConnected && !cardUrl && (
           <p className="text-xs text-muted-foreground text-center">
             Card payments unavailable — Stripe not connected
           </p>
