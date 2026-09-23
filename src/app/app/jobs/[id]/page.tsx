@@ -11,11 +11,13 @@ import { ArrowLeft, Clock, MapPin, User, FileText, Camera, CreditCard, RotateCcw
 import { JobStatusButton } from "./status-button";
 import { JobEditForm } from "./edit-form";
 import { DeleteJobButton } from "./delete-button";
+import { QuoteActions } from "./quote-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge, getStatusLabel } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { QuoteBuilder } from "@/app/m/jobs/[id]/quote-builder";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +73,11 @@ export default async function JobDetailPage({
   if (!job) redirect("/app");
 
   const transitions = ALL_STATUSES.filter((s) => canTransition(job.status, s));
+
+  const org = await prisma.organization.findUnique({
+    where: { id: user.orgId },
+    select: { taxRateBps: true },
+  });
 
   const orgUsers = await prisma.user.findMany({
     where: { orgId: user.orgId, active: true },
@@ -255,6 +262,15 @@ export default async function JobDetailPage({
             </Card>
           )}
 
+          {/* Quote Builder — dispatchers can build/edit quotes */}
+          {(user.role === "DISPATCHER" || user.role === "ORG_ADMIN") && (
+            <QuoteBuilder
+              jobId={job.id}
+              jobStatus={job.status}
+              taxRateBps={org?.taxRateBps ?? 0}
+            />
+          )}
+
           {/* Quote */}
           {latestQuote && (
             <Card>
@@ -278,6 +294,9 @@ export default async function JobDetailPage({
                     <span>Total</span>
                     <span className="font-mono">{formatCents(latestQuote.totalCents)}</span>
                   </div>
+                </div>
+                <div className="mt-4 pt-3 border-t border-border">
+                  <QuoteActions jobId={job.id} customerEmail={latestQuote.customerEmail} />
                 </div>
               </CardContent>
             </Card>

@@ -11,6 +11,7 @@ import { constructConnectWebhookEvent } from "@/lib/stripe-connect";
 import { auditLog } from "@/lib/audit";
 import { sendReceipt } from "@/lib/email";
 import { getSignedUrl } from "@/lib/storage";
+import { createAndSendReviewRequest } from "@/lib/review";
 import { randomBytes } from "crypto";
 
 export async function POST(request: NextRequest) {
@@ -113,11 +114,11 @@ export async function POST(request: NextRequest) {
     });
     const job = await prisma.job.findUnique({
       where: { id: jobId },
-      select: { jobNumber: true },
+      select: { jobNumber: true, customerId: true },
     });
     const org = await prisma.organization.findUnique({
       where: { id: orgId },
-      select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true },
+      select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, googlePlaceId: true, reviewEnabled: true },
     });
 
     if (quote?.customerEmail && job && org) {
@@ -149,6 +150,19 @@ export async function POST(request: NextRequest) {
         paymentMethod: "CARD",
         paidAt: now,
       }).catch((err) => console.error("Receipt email failed:", err));
+
+      // Send review request (fire-and-forget, never blocks payment)
+      createAndSendReviewRequest({
+        orgId,
+        jobId,
+        customerId: job.customerId,
+        customerEmail: quote.customerEmail,
+        orgName: org.name,
+        orgLogoUrl: logoUrl,
+        receiptsEmail: org.receiptsEmail,
+        googlePlaceId: org.googlePlaceId,
+        reviewEnabled: org.reviewEnabled,
+      }).catch((err) => console.error("Review request failed:", err));
     }
   }
 

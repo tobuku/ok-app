@@ -54,7 +54,7 @@ const adminItems: NavItem[] = [
   { href: "/app/pricebook", label: "Price Book", icon: BookOpen },
   { href: "/app/users", label: "Team", icon: Users },
   { href: "/app/settings/billing", label: "Billing", icon: CreditCard },
-  { href: "/app/settings/branding", label: "Branding", icon: Palette },
+  { href: "/app/settings/branding", label: "Branding & Reviews", icon: Palette },
   { href: "/app/settings/stripe", label: "Payments", icon: DollarSign },
   { href: "/app/settings/audit-log", label: "Audit Log", icon: Shield },
 ];

@@ -13,7 +13,7 @@ export async function GET() {
 
   const org = await prisma.organization.findUnique({
     where: { id: user.orgId },
-    select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, taxRateBps: true },
+    select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, taxRateBps: true, reviewEnabled: true, googlePlaceId: true },
   });
 
   if (!org) {
@@ -54,6 +54,12 @@ export async function PATCH(req: NextRequest) {
     }
     data.taxRateBps = bps;
   }
+  if (body.reviewEnabled !== undefined) {
+    data.reviewEnabled = !!body.reviewEnabled;
+  }
+  if (body.googlePlaceId !== undefined) {
+    data.googlePlaceId = body.googlePlaceId?.trim() || null;
+  }
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
@@ -62,7 +68,7 @@ export async function PATCH(req: NextRequest) {
   const updated = await prisma.organization.update({
     where: { id: user.orgId },
     data,
-    select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, taxRateBps: true },
+    select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, taxRateBps: true, reviewEnabled: true, googlePlaceId: true },
   });
 
   await auditLog({

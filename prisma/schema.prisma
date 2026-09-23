@@ -45,12 +45,16 @@ model Organization {
   quoteLines    QuoteLine[]
   payments      Payment[]
   emailLogs     EmailLog[]
-  trucks        Truck[]
-  dumpSites     DumpSite[]
-  dumpRuns      DumpRun[]
-  auditLogs     AuditLog[]
-  jobNotes      JobNote[]
-  addressNotes  AddressNote[]
+  trucks         Truck[]
+  dumpSites      DumpSite[]
+  dumpRuns        DumpRun[]
+  auditLogs      AuditLog[]
+  jobNotes       JobNote[]
+  addressNotes   AddressNote[]
+  reviewRequests ReviewRequest[]
+
+  googlePlaceId  String?
+  reviewEnabled  Boolean  @default(false)
 }
 
 model Plan {
@@ -499,6 +503,23 @@ model JobNote {
 
   @@index([orgId])
   @@index([jobId])
+}
+
+model ReviewRequest {
+  id           String    @id @default(cuid())
+  orgId        String
+  jobId        String
+  customerId   String
+  status       String    // "sent" | "clicked"
+  token        String    @unique @default(cuid())
+  sentAt       DateTime  @default(now())
+  clickedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+  @@index([token])
 }
 
 model AddressNote {

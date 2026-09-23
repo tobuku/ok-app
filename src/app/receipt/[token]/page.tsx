@@ -7,7 +7,8 @@ import { formatCents } from "@/lib/format";
 import { getSignedUrl } from "@/lib/storage";
 import { notFound } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Star } from "lucide-react";
+import { buildGoogleReviewUrl } from "@/lib/review";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export default async function PublicReceiptPage({
         include: { lines: true },
       },
       organization: {
-        select: { name: true, logoKey: true },
+        select: { name: true, logoKey: true, reviewEnabled: true, googlePlaceId: true },
       },
     },
   });
@@ -168,6 +169,20 @@ export default async function PublicReceiptPage({
           <p className="text-center text-xs text-muted-foreground">
             Thank you for your business.
           </p>
+
+          {org.reviewEnabled && org.googlePlaceId && (
+            <div className="pt-2 text-center">
+              <a
+                href={buildGoogleReviewUrl(org.googlePlaceId)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold text-sm hover:bg-blue-700 transition-colors"
+              >
+                <Star className="h-4 w-4" />
+                Leave a Review
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>

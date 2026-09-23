@@ -12,6 +12,7 @@ import { assertTransition } from "@/lib/status";
 import { auditLog } from "@/lib/audit";
 import { sendReceipt } from "@/lib/email";
 import { getSignedUrl } from "@/lib/storage";
+import { createAndSendReviewRequest } from "@/lib/review";
 import { randomBytes } from "crypto";
 import type { JobStatus } from "@prisma/client";
 
@@ -31,9 +32,10 @@ export async function POST(
     id: string;
     jobNumber: number;
     status: JobStatus;
+    customerId: string;
   }>("job", {
     where: { id: jobId },
-    select: { id: true, jobNumber: true, status: true },
+    select: { id: true, jobNumber: true, status: true, customerId: true },
   });
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
@@ -105,7 +107,7 @@ export async function POST(
   if (quote.customerEmail) {
     const org = await prisma.organization.findUnique({
       where: { id: user.orgId },
-      select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true },
+      select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, googlePlaceId: true, reviewEnabled: true },
     });
 
     const lines = await t.findMany<{
@@ -140,6 +142,20 @@ export async function POST(
       paymentMethod: method,
       paidAt: now,
     }).catch((err) => console.error("Receipt email failed:", err));
+
+    // Send review request (fire-and-forget, never blocks payment)
+    createAndSendReviewRequest({
+      orgId: user.orgId,
+      jobId,
+      customerId: job.customerId,
+      customerEmail: quote.customerEmail,
+      orgName: org?.name ?? "Service Provider",
+      orgLogoUrl: logoUrl,
+      receiptsEmail: org?.receiptsEmail,
+      googlePlaceId: org?.googlePlaceId,
+      reviewEnabled: org?.reviewEnabled ?? false,
+      actorUserId: user.id,
+    }).catch((err) => console.error("Review request failed:", err));
   }
 
   return NextResponse.json({ payment: { id: payment.id, status: "SUCCEEDED" } });

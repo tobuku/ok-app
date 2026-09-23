@@ -9,9 +9,9 @@
 import type { JobStatus } from "@prisma/client";
 
 const VALID_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
-  ESTIMATE: ["SCHEDULED", "CANCELED"],
-  NEW: ["SCHEDULED", "CANCELED"],
-  SCHEDULED: ["ON_SITE", "CANCELED"],
+  ESTIMATE: ["SCHEDULED", "QUOTED", "CANCELED"],
+  NEW: ["SCHEDULED", "QUOTED", "CANCELED"],
+  SCHEDULED: ["ON_SITE", "QUOTED", "CANCELED"],
   EN_ROUTE: ["ON_SITE", "CANCELED"], // legacy — kept for any old data
   ON_SITE: ["QUOTED", "CANCELED"],
   QUOTED: ["ACCEPTED", "DECLINED", "CANCELED"],

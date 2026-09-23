@@ -14,12 +14,16 @@ export function BrandingForm({
   initialReceiptsEmail,
   initialSenderEmail,
   initialTaxRateBps,
+  initialReviewEnabled,
+  initialGooglePlaceId,
 }: {
   orgName: string;
   initialLogoUrl: string | null;
   initialReceiptsEmail: string;
   initialSenderEmail: string;
   initialTaxRateBps: number;
+  initialReviewEnabled: boolean;
+  initialGooglePlaceId: string;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -29,6 +33,8 @@ export function BrandingForm({
   const [taxRatePercent, setTaxRatePercent] = useState(
     (initialTaxRateBps / 100).toFixed(2)
   );
+  const [reviewEnabled, setReviewEnabled] = useState(initialReviewEnabled);
+  const [googlePlaceId, setGooglePlaceId] = useState(initialGooglePlaceId);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -67,6 +73,8 @@ export function BrandingForm({
           receiptsEmail: receiptsEmail.trim() || null,
           senderEmail: senderEmail.trim() || null,
           taxRateBps: bps,
+          reviewEnabled,
+          googlePlaceId: googlePlaceId.trim() || null,
         }),
       });
       if (!res.ok) {
@@ -179,6 +187,56 @@ export function BrandingForm({
               value={taxRatePercent}
               onChange={(e) => setTaxRatePercent(e.target.value)}
               className="w-32"
+            />
+          </div>
+
+          <div className="pt-2">
+            <Button onClick={saveSettings} disabled={saving}>
+              {saving ? "Saving..." : "Save Settings"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Google Reviews */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">Google Reviews</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <input
+              id="review-enabled"
+              type="checkbox"
+              checked={reviewEnabled}
+              onChange={(e) => setReviewEnabled(e.target.checked)}
+              className="h-4 w-4 rounded border-border"
+            />
+            <Label htmlFor="review-enabled">
+              Send review requests after completed jobs
+            </Label>
+          </div>
+
+          <div>
+            <Label htmlFor="google-place-id">Google Place ID</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Find your Place ID at{" "}
+              <a
+                href="https://developers.google.com/maps/documentation/places/web-service/place-id"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Google&apos;s Place ID Finder
+              </a>
+              . Search for your business name and copy the Place ID.
+            </p>
+            <Input
+              id="google-place-id"
+              type="text"
+              value={googlePlaceId}
+              onChange={(e) => setGooglePlaceId(e.target.value)}
+              placeholder="ChIJ..."
             />
           </div>
 

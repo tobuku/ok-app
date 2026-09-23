@@ -12,7 +12,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: jobId } = await params;
-  const userOrRes = await requireOrgUser(["LEADMAN", "ORG_ADMIN"], true);
+  const userOrRes = await requireOrgUser(["LEADMAN", "DISPATCHER", "ORG_ADMIN"], true);
   if (userOrRes instanceof Response) return userOrRes;
   const user = userOrRes;
 
@@ -26,7 +26,8 @@ export async function POST(
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
-  if (job.status !== "ESTIMATE" && job.status !== "ON_SITE" && job.status !== "QUOTED" && job.status !== "DECLINED") {
+  const quoteableStatuses = ["ESTIMATE", "NEW", "SCHEDULED", "ON_SITE", "QUOTED", "DECLINED"];
+  if (!quoteableStatuses.includes(job.status)) {
     return NextResponse.json(
       { error: `Cannot create quote in status ${job.status}` },
       { status: 400 }
@@ -88,8 +89,8 @@ export async function POST(
       });
     }
 
-    // Transition job to QUOTED if it's ON_SITE or DECLINED
-    if (job.status === "ESTIMATE" || job.status === "ON_SITE" || job.status === "DECLINED") {
+    // Transition job to QUOTED
+    if (["ESTIMATE", "NEW", "SCHEDULED", "ON_SITE", "DECLINED"].includes(job.status)) {
       await tx.job.update({
         where: { id: jobId },
         data: { status: "QUOTED" },
@@ -119,7 +120,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: jobId } = await params;
-  const userOrRes = await requireOrgUser(["LEADMAN", "ORG_ADMIN"], true);
+  const userOrRes = await requireOrgUser(["LEADMAN", "DISPATCHER", "ORG_ADMIN"], true);
   if (userOrRes instanceof Response) return userOrRes;
   const user = userOrRes;
 

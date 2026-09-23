@@ -226,6 +226,94 @@ export async function sendOrgInvite(opts: {
 }
 
 /**
+ * Send white-labeled review request email to the customer.
+ * Links to /review/{token} for click tracking (not directly to Google).
+ */
+export async function sendReviewRequestEmail(data: {
+  orgId: string;
+  jobId: string;
+  orgName: string;
+  orgLogoUrl?: string | null;
+  receiptsEmail?: string | null;
+  customerEmail: string;
+  reviewLink: string;
+}): Promise<void> {
+  const displayName = data.orgName;
+  const from = buildFrom(displayName);
+  const replyTo = data.receiptsEmail || undefined;
+
+  const logoHtml = data.orgLogoUrl
+    ? `<img src="${data.orgLogoUrl}" alt="${data.orgName}" style="max-height:60px;margin:0 auto 12px;" />`
+    : `<h1 style="margin:0 0 8px;font-size:24px;color:#ffffff;">${data.orgName}</h1>`;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width" /></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:480px;margin:0 auto;padding:24px;">
+    <div style="background:#111827;border-radius:12px 12px 0 0;padding:32px 24px;text-align:center;">
+      ${logoHtml}
+    </div>
+    <div style="background:#ffffff;border-radius:0 0 12px 12px;padding:32px 24px;border:1px solid #e5e7eb;border-top:none;text-align:center;">
+      <h2 style="margin:0 0 12px;font-size:20px;color:#111827;">How was your experience?</h2>
+      <p style="margin:0 0 24px;color:#6b7280;font-size:14px;line-height:1.6;">
+        Thank you for choosing ${data.orgName}! We'd love to hear about your experience. A quick review helps us serve you and others better.
+      </p>
+      <a href="${data.reviewLink}" style="display:inline-block;background:#2563eb;color:#ffffff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">
+        Leave a Review
+      </a>
+      <p style="margin:24px 0 0;color:#9ca3af;font-size:12px;">
+        It only takes a minute. Thank you!
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const subjectBase = `How was your experience with ${data.orgName}?`;
+  const subject = !isProduction() ? `[preview] ${subjectBase}` : subjectBase;
+
+  const recipient = safeRecipient(data.customerEmail);
+  if (!recipient) {
+    await prisma.emailLog.create({
+      data: {
+        orgId: data.orgId,
+        jobId: data.jobId,
+        to: data.customerEmail,
+        template: "review_request",
+        status: "suppressed",
+      },
+    });
+    return;
+  }
+
+  try {
+    await getResend().emails.send({ from, to: recipient, subject, html, replyTo });
+
+    await prisma.emailLog.create({
+      data: {
+        orgId: data.orgId,
+        jobId: data.jobId,
+        to: data.customerEmail,
+        template: "review_request",
+        status: "sent",
+      },
+    });
+  } catch (err) {
+    console.error(`Failed to send review request to ${data.customerEmail}:`, err);
+    await prisma.emailLog.create({
+      data: {
+        orgId: data.orgId,
+        jobId: data.jobId,
+        to: data.customerEmail,
+        template: "review_request",
+        status: "failed",
+      },
+    });
+  }
+}
+
+/**
  * Send white-labeled receipt to the customer AND company receiptsEmail.
  * From address always uses the verified domain. senderEmail is ignored for
  * the actual address — org name is used as the display name.
