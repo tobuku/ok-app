@@ -141,6 +141,16 @@ export async function GET(
   <meta name="viewport" content="width=device-width" />
   <title>Estimate — ${orgName} Job #${job.jobNumber}</title>
   <style>
+    @page {
+      margin: 0.5in;
+      /* Remove browser headers/footers (URL, date, page number) */
+      @top-left { content: none; }
+      @top-center { content: none; }
+      @top-right { content: none; }
+      @bottom-left { content: none; }
+      @bottom-center { content: none; }
+      @bottom-right { content: none; }
+    }
     @media print {
       body { background: white !important; }
       .no-print { display: none !important; }
