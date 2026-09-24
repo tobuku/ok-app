@@ -103,13 +103,13 @@ export async function POST(
     meta: { jobId, amountCents, method },
   });
 
-  // Send receipt email if customer email is available
-  if (quote.customerEmail) {
-    const org = await prisma.organization.findUnique({
-      where: { id: user.orgId },
-      select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, googlePlaceId: true, reviewEnabled: true },
-    });
+  // Send receipt email — always send to org receiptsEmail, and to customer if email provided
+  const org = await prisma.organization.findUnique({
+    where: { id: user.orgId },
+    select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, googlePlaceId: true, reviewEnabled: true },
+  });
 
+  if (quote.customerEmail || org?.receiptsEmail) {
     const lines = await t.findMany<{
       label: string;
       qty: number;
@@ -144,18 +144,20 @@ export async function POST(
     }).catch((err) => console.error("Receipt email failed:", err));
 
     // Send review request (fire-and-forget, never blocks payment)
-    createAndSendReviewRequest({
-      orgId: user.orgId,
-      jobId,
-      customerId: job.customerId,
-      customerEmail: quote.customerEmail,
-      orgName: org?.name ?? "Service Provider",
-      orgLogoUrl: logoUrl,
-      receiptsEmail: org?.receiptsEmail,
-      googlePlaceId: org?.googlePlaceId,
-      reviewEnabled: org?.reviewEnabled ?? false,
-      actorUserId: user.id,
-    }).catch((err) => console.error("Review request failed:", err));
+    if (quote.customerEmail) {
+      createAndSendReviewRequest({
+        orgId: user.orgId,
+        jobId,
+        customerId: job.customerId,
+        customerEmail: quote.customerEmail,
+        orgName: org?.name ?? "Service Provider",
+        orgLogoUrl: logoUrl,
+        receiptsEmail: org?.receiptsEmail,
+        googlePlaceId: org?.googlePlaceId,
+        reviewEnabled: org?.reviewEnabled ?? false,
+        actorUserId: user.id,
+      }).catch((err) => console.error("Review request failed:", err));
+    }
   }
 
   return NextResponse.json({ payment: { id: payment.id, status: "SUCCEEDED" } });

@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, googlePlaceId: true, reviewEnabled: true },
     });
 
-    if (quote?.customerEmail && job && org) {
+    if (quote && job && org && (quote.customerEmail || org.receiptsEmail)) {
       let logoUrl: string | null = null;
       if (org.logoKey) {
         logoUrl = await getSignedUrl(org.logoKey);
@@ -154,17 +154,19 @@ export async function POST(request: NextRequest) {
       }).catch((err) => console.error("Receipt email failed:", err));
 
       // Send review request (fire-and-forget, never blocks payment)
-      createAndSendReviewRequest({
-        orgId,
-        jobId,
-        customerId: job.customerId,
-        customerEmail: quote.customerEmail,
-        orgName: org.name,
-        orgLogoUrl: logoUrl,
-        receiptsEmail: org.receiptsEmail,
-        googlePlaceId: org.googlePlaceId,
-        reviewEnabled: org.reviewEnabled,
-      }).catch((err) => console.error("Review request failed:", err));
+      if (quote.customerEmail) {
+        createAndSendReviewRequest({
+          orgId,
+          jobId,
+          customerId: job.customerId,
+          customerEmail: quote.customerEmail,
+          orgName: org.name,
+          orgLogoUrl: logoUrl,
+          receiptsEmail: org.receiptsEmail,
+          googlePlaceId: org.googlePlaceId,
+          reviewEnabled: org.reviewEnabled,
+        }).catch((err) => console.error("Review request failed:", err));
+      }
     }
   }
 

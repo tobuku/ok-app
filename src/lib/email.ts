@@ -59,7 +59,7 @@ type ReceiptData = {
   orgLogoUrl?: string | null;
   senderEmail?: string | null;
   receiptsEmail?: string | null;
-  customerEmail: string;
+  customerEmail?: string | null;
   jobNumber: number;
   lines: ReceiptLine[];
   subtotalCents: number;
@@ -327,10 +327,13 @@ export async function sendReceipt(data: ReceiptData): Promise<void> {
   const from = buildFrom(displayName);
   const replyTo = data.receiptsEmail || undefined;
 
-  const recipients: string[] = [data.customerEmail];
+  const recipients: string[] = [];
+  if (data.customerEmail) recipients.push(data.customerEmail);
   if (data.receiptsEmail && data.receiptsEmail !== data.customerEmail) {
     recipients.push(data.receiptsEmail);
   }
+
+  if (recipients.length === 0) return;
 
   const subjectBase = `Receipt — ${data.orgName} Job #${data.jobNumber}`;
   const subject = !isProduction() ? `[preview] ${subjectBase}` : subjectBase;
