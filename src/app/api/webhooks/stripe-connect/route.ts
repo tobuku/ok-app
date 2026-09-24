@@ -84,12 +84,14 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Transition job to PAID (payment before loading — job is in ACCEPTED status)
+      // Transition job to PAID from any valid pre-PAID status.
+      // The leadman may have moved the job forward (e.g. IN_PROGRESS) before
+      // the webhook arrived — in that case we leave the status as-is.
       const job = await tx.job.findUnique({
         where: { id: jobId },
         select: { status: true },
       });
-      if (job && job.status === "ACCEPTED") {
+      if (job && (job.status === "ACCEPTED" || job.status === "QUOTED")) {
         await tx.job.update({
           where: { id: jobId },
           data: { status: "PAID" },

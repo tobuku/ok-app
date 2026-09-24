@@ -1,6 +1,7 @@
 import { resolveAuth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { MobileHeader } from "@/components/mobile-header";
 import { OnboardingTour } from "@/components/onboarding-tour";
 import { mobileTourSteps } from "@/lib/tour-definitions";
 import { SwRegister } from "@/components/sw-register";
@@ -20,10 +21,7 @@ export default async function MobileLayout({
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="sticky top-0 z-40 flex items-center justify-between h-14 px-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <span className="font-bold text-foreground">Today</span>
-        <span className="text-xs text-muted-foreground">{user.name}</span>
-      </header>
+      <MobileHeader userName={user.name} />
       <main className="flex-1 p-4 pb-20">{children}</main>
       <MobileBottomNav />
       <OnboardingTour tourId="mobile" steps={mobileTourSteps} />

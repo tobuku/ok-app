@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Share2, Printer, FileText, QrCode, MessageSquare, Copy, Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Share2, Printer, FileText, QrCode, MessageSquare, Copy, Check, Mail, Send, CheckCircle2 } from "lucide-react";
 import { showError } from "@/lib/toast";
 import QRCode from "qrcode";
 
@@ -11,11 +12,13 @@ export function InvoiceActions({
   orgName,
   receiptToken,
   customerPhone,
+  customerEmail,
 }: {
   jobId: string;
   orgName: string;
   receiptToken: string | null;
   customerPhone: string | null;
+  customerEmail?: string | null;
 }) {
   const invoiceUrl = `/api/org/jobs/${jobId}/invoice`;
   const appUrl = typeof window !== "undefined" ? window.location.origin : "";
@@ -24,6 +27,11 @@ export function InvoiceActions({
   const [showQr, setShowQr] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [receiptConfirmed, setReceiptConfirmed] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [email, setEmail] = useState(customerEmail ?? "");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
 
   useEffect(() => {
     if (showQr && receiptUrl && !qrDataUrl) {
@@ -56,6 +64,32 @@ export function InvoiceActions({
       document.body.removeChild(ta);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  async function handleSendReceipt() {
+    if (!email.trim()) {
+      showError("Enter an email address");
+      return;
+    }
+    setSending(true);
+    try {
+      const res = await fetch(`/api/org/jobs/${jobId}/receipt/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        showError(data.error || "Failed to send receipt");
+      } else {
+        setSent(true);
+        setShowEmailForm(false);
+      }
+    } catch {
+      showError("Network error");
+    } finally {
+      setSending(false);
     }
   }
 
@@ -102,10 +136,66 @@ export function InvoiceActions({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      {/* Receipt confirmation prompt */}
+      {!receiptConfirmed && !sent && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 space-y-3">
+          <p className="text-amber-800 dark:text-amber-400 font-medium text-sm">
+            Does the customer have a copy of their receipt?
+          </p>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="flex-1 h-11 bg-green-600 hover:bg-green-700 text-white font-semibold"
+              onClick={() => setReceiptConfirmed(true)}
+            >
+              <CheckCircle2 className="h-4 w-4 mr-1" />
+              Yes
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1 h-11 font-semibold"
+              onClick={() => setShowEmailForm(true)}
+            >
+              <Mail className="h-4 w-4 mr-1" />
+              Send Receipt
+            </Button>
+          </div>
+          {showEmailForm && (
+            <div className="space-y-2 pt-1">
+              <Input
+                type="email"
+                placeholder="customer@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-11"
+              />
+              <Button
+                onClick={handleSendReceipt}
+                disabled={sending}
+                className="w-full h-11 font-semibold"
+              >
+                <Send className="h-4 w-4 mr-1" />
+                {sending ? "Sending..." : "Send Receipt Email"}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Sent confirmation */}
+      {sent && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 flex items-center gap-2">
+          <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+          <p className="text-green-800 dark:text-green-400 text-sm font-medium">
+            Receipt sent to {email}
+          </p>
+        </div>
+      )}
+
+      {/* Receipt sharing tools */}
       <p className="text-xs font-medium text-muted-foreground uppercase">Receipt</p>
 
-      {/* QR / SMS / Copy — only when receiptToken exists */}
       {receiptUrl && (
         <div className="space-y-2">
           <div className="flex gap-2">
@@ -165,7 +255,41 @@ export function InvoiceActions({
         </div>
       )}
 
-      {/* Existing Share / Print / View */}
+      {/* Email receipt button (always available even after confirmation) */}
+      {(receiptConfirmed || sent) && !showEmailForm && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full min-h-[44px]"
+          onClick={() => { setShowEmailForm(true); setReceiptConfirmed(false); setSent(false); }}
+        >
+          <Mail className="h-4 w-4 mr-1" />
+          {sent ? "Send to Another Email" : "Email Receipt"}
+        </Button>
+      )}
+
+      {/* Inline email form when triggered from the button above */}
+      {(receiptConfirmed || sent) && showEmailForm && (
+        <div className="space-y-2">
+          <Input
+            type="email"
+            placeholder="customer@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="h-11"
+          />
+          <Button
+            onClick={handleSendReceipt}
+            disabled={sending}
+            className="w-full h-11 font-semibold"
+          >
+            <Send className="h-4 w-4 mr-1" />
+            {sending ? "Sending..." : "Send Receipt Email"}
+          </Button>
+        </div>
+      )}
+
+      {/* Invoice tools */}
       <p className="text-xs font-medium text-muted-foreground uppercase pt-1">Invoice</p>
       <div className="flex gap-2">
         <Button

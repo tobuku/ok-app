@@ -12,7 +12,7 @@ import { formatCents } from "@/lib/format";
 import { getSignedUrl } from "@/lib/storage";
 import { AcceptDeclineButtons } from "./accept-decline-buttons";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -204,6 +204,17 @@ export default async function PresentQuotePage({
               <p className="text-red-800 dark:text-red-400 font-medium">Quote Declined</p>
             </div>
           ) : null}
+
+          {/* Return to job — always visible for leadman */}
+          <div className="pt-4 border-t border-border">
+            <a
+              href={`/m/jobs/${jobId}`}
+              className="flex items-center justify-center gap-1 text-sm text-primary hover:underline py-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Return to Job
+            </a>
+          </div>
         </div>
       </div>
     </div>

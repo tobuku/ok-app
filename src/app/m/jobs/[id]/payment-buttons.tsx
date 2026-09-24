@@ -69,7 +69,12 @@ export function PaymentButtons({
   if (cardUrl) {
     return (
       <div className="space-y-3">
-        <PaymentHandoff checkoutUrl={cardUrl} customerPhone={customerPhone} />
+        <PaymentHandoff
+          checkoutUrl={cardUrl}
+          customerPhone={customerPhone}
+          jobId={jobId}
+          onPaid={() => router.refresh()}
+        />
         <Button
           variant="link"
           onClick={() => { setCardUrl(null); setLoading(null); }}

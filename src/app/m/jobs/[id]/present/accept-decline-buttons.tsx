@@ -173,7 +173,15 @@ export function AcceptDeclineButtons({
         </Card>
 
         {cardUrl ? (
-          <PaymentHandoff checkoutUrl={cardUrl} customerPhone={customerPhone} />
+          <PaymentHandoff
+            checkoutUrl={cardUrl}
+            customerPhone={customerPhone}
+            jobId={jobId}
+            onPaid={() => {
+              setPhase("done-accepted");
+              setTimeout(() => router.push(`/m/jobs/${jobId}`), 2000);
+            }}
+          />
         ) : (
           <>
             <p className="text-sm font-medium text-center text-foreground">How would you like to pay?</p>

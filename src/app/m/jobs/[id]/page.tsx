@@ -305,12 +305,17 @@ export default async function MobileJobDetailPage({
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
                 <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-1" />
                 <p className="text-green-800 dark:text-green-400 font-medium text-lg">Paid</p>
-                <p className="text-green-600 dark:text-green-500 text-sm mt-1">Ready to load</p>
+                <p className="text-green-600 dark:text-green-500 text-sm mt-1">Confirm receipt, then start job</p>
               </div>
               {acceptedQuoteId && (
-                <InvoiceActions jobId={job.id} orgName={org?.name ?? ""} receiptToken={receiptToken} customerPhone={job.customer.phone} />
+                <InvoiceActions jobId={job.id} orgName={org?.name ?? ""} receiptToken={receiptToken} customerPhone={job.customer.phone} customerEmail={acceptedQuote?.customerEmail} />
               )}
             </div>
+          )}
+
+          {/* In Progress — show receipt actions in case they were skipped */}
+          {job.status === "IN_PROGRESS" && acceptedQuoteId && receiptToken && (
+            <InvoiceActions jobId={job.id} orgName={org?.name ?? ""} receiptToken={receiptToken} customerPhone={job.customer.phone} customerEmail={acceptedQuote?.customerEmail} />
           )}
 
           {/* Completed confirmation */}
@@ -321,7 +326,7 @@ export default async function MobileJobDetailPage({
                 <p className="text-green-800 dark:text-green-400 font-medium text-lg">Job Complete</p>
               </div>
               {acceptedQuoteId && (
-                <InvoiceActions jobId={job.id} orgName={org?.name ?? ""} receiptToken={receiptToken} customerPhone={job.customer.phone} />
+                <InvoiceActions jobId={job.id} orgName={org?.name ?? ""} receiptToken={receiptToken} customerPhone={job.customer.phone} customerEmail={acceptedQuote?.customerEmail} />
               )}
             </div>
           )}

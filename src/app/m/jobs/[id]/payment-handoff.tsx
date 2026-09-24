@@ -1,20 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { QrCode, MessageSquare, Copy, ExternalLink, Check } from "lucide-react";
+import { QrCode, MessageSquare, Copy, ExternalLink, Check, CheckCircle2, Loader2 } from "lucide-react";
 import QRCode from "qrcode";
 
 export function PaymentHandoff({
   checkoutUrl,
   customerPhone,
+  jobId,
+  onPaid,
 }: {
   checkoutUrl: string;
   customerPhone: string | null;
+  jobId?: string;
+  onPaid?: (receiptToken: string | null) => void;
 }) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [paid, setPaid] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const onPaidRef = useRef(onPaid);
+  onPaidRef.current = onPaid;
 
   useEffect(() => {
     QRCode.toDataURL(checkoutUrl, {
@@ -23,6 +31,30 @@ export function PaymentHandoff({
       color: { dark: "#111827", light: "#ffffff" },
     }).then(setQrDataUrl);
   }, [checkoutUrl]);
+
+  // Poll for payment completion every 3s
+  useEffect(() => {
+    if (!jobId) return;
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/org/jobs/${jobId}/pay/status`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.paid) {
+          setPaid(true);
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          onPaidRef.current?.(data.receiptToken);
+        }
+      } catch {
+        // network hiccup — keep polling
+      }
+    }, 3000);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [jobId]);
 
   const digits = customerPhone?.replace(/\D/g, "") ?? null;
   const smsHref = digits
@@ -47,12 +79,27 @@ export function PaymentHandoff({
     }
   }
 
+  if (paid) {
+    return (
+      <Card className="border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800">
+        <CardContent className="p-4 text-center space-y-2">
+          <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto" />
+          <p className="text-green-800 dark:text-green-400 font-semibold text-lg">Payment Received</p>
+          <p className="text-green-600 dark:text-green-500 text-sm">Customer paid by card</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="border-primary/20 bg-primary/5">
       <CardContent className="p-4 space-y-4">
-        <p className="text-primary font-medium text-center">
-          Customer scans to pay
-        </p>
+        <div className="flex items-center justify-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <p className="text-primary font-medium">
+            Waiting for customer payment...
+          </p>
+        </div>
 
         {/* QR Code */}
         <div className="flex justify-center">
