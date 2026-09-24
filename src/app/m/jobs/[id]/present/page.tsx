@@ -38,12 +38,13 @@ export default async function PresentQuotePage({
   });
   if (!org) redirect("/m");
 
-  // Get customer phone for payment handoff
-  const job = await t.findFirst<{ customer: { phone: string | null } }>("job", {
+  // Get customer phone + email for payment handoff and receipt
+  const job = await t.findFirst<{ customer: { phone: string | null; email: string | null } }>("job", {
     where: { id: jobId },
-    select: { customer: { select: { phone: true } } },
+    select: { customer: { select: { phone: true, email: true } } },
   });
   const customerPhone = job?.customer?.phone ?? null;
+  const customerEmail = job?.customer?.email ?? null;
 
   let logoUrl: string | null = null;
   if (org.logoKey) {
@@ -179,6 +180,7 @@ export default async function PresentQuotePage({
               totalCents={quote.totalCents}
               stripeConnected={!!org.stripeConnectAccountId}
               customerPhone={customerPhone}
+              initialEmail={customerEmail}
             />
           ) : quoteStatus === "ACCEPTED" ? (
             <div className="space-y-3">

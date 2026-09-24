@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { showError } from "@/lib/toast";
 import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
-import { CreditCard, Banknote, FileCheck } from "lucide-react";
+import { CreditCard, Banknote, FileCheck, AlertTriangle } from "lucide-react";
 import { PaymentHandoff } from "../payment-handoff";
 
 export function AcceptDeclineButtons({
@@ -17,23 +17,35 @@ export function AcceptDeclineButtons({
   totalCents,
   stripeConnected,
   customerPhone,
+  initialEmail,
 }: {
   quoteId: string;
   jobId: string;
   totalCents: number;
   stripeConnected: boolean;
   customerPhone: string | null;
+  initialEmail?: string | null;
 }) {
   const router = useRouter();
   const [acting, setActing] = useState(false);
   const [phase, setPhase] = useState<"sign" | "pay" | "done-accepted" | "done-declined">("sign");
-  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerEmail, setCustomerEmail] = useState(initialEmail ?? "");
+  const [emailWarningDismissed, setEmailWarningDismissed] = useState(false);
   const [hasSig, setHasSig] = useState(false);
   const sigPadRef = useRef<SignaturePadHandle>(null);
   const [cardUrl, setCardUrl] = useState<string | null>(null);
 
   /** Step 1: Accept the quote via API */
   async function handleAccept() {
+    // Warn if no email — let leadman proceed if they confirm
+    if (!customerEmail.trim() && !emailWarningDismissed) {
+      const proceed = window.confirm(
+        "No customer email entered. The customer will NOT receive a receipt. Continue without email?"
+      );
+      if (!proceed) return;
+      setEmailWarningDismissed(true);
+    }
+
     setActing(true);
     try {
       const body: Record<string, string> = {};
@@ -227,12 +239,14 @@ export function AcceptDeclineButtons({
   }
 
   // --- Sign + Accept phase (initial) ---
+  const emailMissing = !customerEmail.trim();
+
   return (
     <div className="space-y-3 pt-2">
-      {/* Customer email for receipt */}
+      {/* Customer email for receipt — prominent */}
       <div className="space-y-1">
-        <Label htmlFor="customer-email" className="text-xs text-muted-foreground">
-          Customer Email (for receipt)
+        <Label htmlFor="customer-email" className="text-sm font-medium text-foreground">
+          Customer Email <span className="text-muted-foreground font-normal">(for receipt)</span>
         </Label>
         <Input
           id="customer-email"
@@ -240,7 +254,14 @@ export function AcceptDeclineButtons({
           value={customerEmail}
           onChange={(e) => setCustomerEmail(e.target.value)}
           placeholder="customer@example.com"
+          className={`h-12 text-base ${emailMissing ? "border-amber-400 dark:border-amber-600" : ""}`}
         />
+        {emailMissing && (
+          <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            <p className="text-xs">Required to send customer a receipt</p>
+          </div>
+        )}
       </div>
 
       {/* Signature capture */}
