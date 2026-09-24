@@ -70,6 +70,8 @@ type ReceiptData = {
   paymentMethod: "CARD" | "CASH" | "CHECK";
   paidAt: Date;
   receiptToken?: string | null;
+  signatureUrl?: string | null;
+  acceptedAt?: Date | null;
 };
 
 function buildReceiptHtml(data: ReceiptData): string {
@@ -147,6 +149,21 @@ function buildReceiptHtml(data: ReceiptData): string {
 
       <div style="margin-top:16px;padding:12px;background:#f0fdf4;border-radius:8px;text-align:center;">
         <p style="margin:0;color:#166534;font-weight:600;">Paid by ${data.paymentMethod === "CARD" ? "Card" : data.paymentMethod === "CHECK" ? "Check" : "Cash"}</p>
+      </div>${data.signatureUrl ? `
+
+      <div style="margin-top:16px;border:1px solid #e5e7eb;border-radius:8px;padding:16px;text-align:center;">
+        <p style="margin:0 0 8px;color:#6b7280;font-size:12px;">Customer Signature</p>
+        <img src="${data.signatureUrl}" alt="Customer Signature" style="max-height:80px;max-width:100%;object-fit:contain;" />
+        ${data.acceptedAt ? `<p style="margin:8px 0 0;color:#9ca3af;font-size:10px;">Signed ${data.acceptedAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>` : ""}
+      </div>` : ""}
+
+      <div style="margin-top:16px;border:1px solid #e5e7eb;border-radius:8px;padding:12px;background:#f9fafb;">
+        <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:0.5px;">Terms & Conditions</p>
+        <p style="margin:0 0 6px;font-size:10px;line-height:1.4;color:#6b7280;">By signing above, the customer authorized ${data.orgName} to remove the items and/or materials identified in this quote from the specified location.</p>
+        <p style="margin:0 0 6px;font-size:10px;line-height:1.4;color:#6b7280;"><strong style="color:#374151;">All sales are final.</strong> No refunds or chargebacks will be issued once work has commenced.</p>
+        <p style="margin:0 0 6px;font-size:10px;line-height:1.4;color:#6b7280;"><strong style="color:#374151;">Damage disclaimer:</strong> ${data.orgName} will exercise reasonable care during removal. However, we are not liable for pre-existing damage, cosmetic wear to surfaces incurred during removal of heavy, oversized, or awkwardly placed items.</p>
+        <p style="margin:0 0 6px;font-size:10px;line-height:1.4;color:#6b7280;"><strong style="color:#374151;">Hazardous materials:</strong> This quote does not cover hazardous, biohazard, or regulated materials unless explicitly listed.</p>
+        <p style="margin:0 0 6px;font-size:10px;line-height:1.4;color:#6b7280;"><strong style="color:#374151;">Abandoned items:</strong> All removed items become the property of ${data.orgName} for disposal, recycling, or resale at our discretion.</p>
       </div>${data.receiptToken ? `
 
       <div style="margin-top:16px;text-align:center;">

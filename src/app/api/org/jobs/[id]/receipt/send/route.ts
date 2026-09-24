@@ -45,6 +45,8 @@ export async function POST(
     discountCents: number;
     discountReason: string | null;
     taxCents: number;
+    signatureKey: string | null;
+    acceptedAt: Date | null;
   }>("quote", {
     where: { jobId, status: "ACCEPTED" },
   });
@@ -78,6 +80,11 @@ export async function POST(
     logoUrl = await getSignedUrl(org.logoKey);
   }
 
+  let signatureUrl: string | null = null;
+  if (quote.signatureKey) {
+    signatureUrl = await getSignedUrl(quote.signatureKey).catch(() => null);
+  }
+
   try {
     await sendReceipt({
       receiptToken: payment.receiptToken,
@@ -97,6 +104,8 @@ export async function POST(
       totalCents: quote.totalCents,
       paymentMethod: payment.method as "CARD" | "CASH" | "CHECK",
       paidAt: payment.paidAt ?? new Date(),
+      signatureUrl,
+      acceptedAt: quote.acceptedAt,
     });
 
     return NextResponse.json({ sent: true });

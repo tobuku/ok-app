@@ -52,6 +52,8 @@ export async function POST(
     discountReason: string | null;
     taxCents: number;
     customerEmail: string | null;
+    signatureKey: string | null;
+    acceptedAt: Date | null;
   }>("quote", {
     where: { jobId, status: "ACCEPTED" },
   });
@@ -123,6 +125,11 @@ export async function POST(
       logoUrl = await getSignedUrl(org.logoKey);
     }
 
+    let signatureUrl: string | null = null;
+    if (quote.signatureKey) {
+      signatureUrl = await getSignedUrl(quote.signatureKey).catch(() => null);
+    }
+
     sendReceipt({
       receiptToken: payment.receiptToken,
       orgId: user.orgId,
@@ -141,6 +148,8 @@ export async function POST(
       totalCents: quote.totalCents,
       paymentMethod: method,
       paidAt: now,
+      signatureUrl,
+      acceptedAt: quote.acceptedAt,
     }).catch((err) => console.error("Receipt email failed:", err));
 
     // Send review request (fire-and-forget, never blocks payment)

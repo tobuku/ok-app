@@ -129,6 +129,11 @@ export async function POST(request: NextRequest) {
         logoUrl = await getSignedUrl(org.logoKey);
       }
 
+      let signatureUrl: string | null = null;
+      if (quote.signatureKey) {
+        signatureUrl = await getSignedUrl(quote.signatureKey).catch(() => null);
+      }
+
       sendReceipt({
         receiptToken: receiptTokenResult,
         orgId,
@@ -151,6 +156,8 @@ export async function POST(request: NextRequest) {
         totalCents: quote.totalCents,
         paymentMethod: "CARD",
         paidAt: now,
+        signatureUrl,
+        acceptedAt: quote.acceptedAt,
       }).catch((err) => console.error("Receipt email failed:", err));
 
       // Send review request (fire-and-forget, never blocks payment)

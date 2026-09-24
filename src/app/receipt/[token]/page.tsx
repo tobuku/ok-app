@@ -45,6 +45,11 @@ export default async function PublicReceiptPage({
     logoUrl = await getSignedUrl(org.logoKey);
   }
 
+  let signatureUrl: string | null = null;
+  if (payment.quote?.signatureKey) {
+    signatureUrl = await getSignedUrl(payment.quote.signatureKey);
+  }
+
   const paidDate = payment.paidAt
     ? new Date(payment.paidAt).toLocaleDateString("en-US", {
         month: "long",
@@ -164,6 +169,34 @@ export default async function PublicReceiptPage({
             <p className="text-green-800 dark:text-green-400 font-medium text-lg">
               Paid by {methodLabel}
             </p>
+          </div>
+
+          {/* Signature */}
+          {signatureUrl && (
+            <div className="border border-border rounded-lg p-4 text-center">
+              <p className="text-xs text-muted-foreground mb-2">Customer Signature</p>
+              <img
+                src={signatureUrl}
+                alt="Customer Signature"
+                className="mx-auto max-h-24 object-contain"
+              />
+              {payment.quote?.acceptedAt && (
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  Signed {new Date(payment.quote.acceptedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Terms & Conditions */}
+          <div className="text-[10px] leading-tight text-muted-foreground border border-border rounded-md p-3 space-y-1.5 bg-muted/30">
+            <p className="font-semibold text-xs text-foreground uppercase tracking-wide mb-1">Terms & Conditions</p>
+            <p>By signing above, the customer authorized {org.name} to remove the items and/or materials identified in this quote from the specified location.</p>
+            <p><strong>All sales are final.</strong> No refunds or chargebacks will be issued once work has commenced.</p>
+            <p><strong>Damage disclaimer:</strong> {org.name} will exercise reasonable care during removal. However, we are not liable for pre-existing damage, cosmetic wear to surfaces (walls, floors, doorways, landscaping) incurred during the removal of heavy, oversized, or awkwardly placed items, or for damage to items not included in this quote that are in the removal path.</p>
+            <p><strong>Hazardous materials:</strong> This quote does not cover hazardous, biohazard, or regulated materials (chemicals, asbestos, medical waste, etc.) unless explicitly listed. Discovery of such materials may result in additional charges or work stoppage.</p>
+            <p><strong>Access &amp; conditions:</strong> Customer is responsible for providing clear access to the removal area. Additional labor or equipment required due to undisclosed site conditions (stairs, narrow access, long carry distances) may incur extra charges with prior approval.</p>
+            <p><strong>Abandoned items:</strong> All removed items become the property of {org.name} for disposal, recycling, or resale at our discretion.</p>
           </div>
 
           <p className="text-center text-xs text-muted-foreground">
