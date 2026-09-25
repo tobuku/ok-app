@@ -24,6 +24,8 @@ export async function GET(
 
   return NextResponse.json({
     paid: payment?.status === "SUCCEEDED",
+    failed: payment?.status === "FAILED",
+    status: payment?.status ?? null,
     receiptToken: payment?.status === "SUCCEEDED" ? payment.receiptToken : null,
   });
 }

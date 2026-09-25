@@ -30,9 +30,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  if (event.type === "checkout.session.expired") {
+    const session = event.data.object;
+    // Mark pending payment as failed so the leadman's polling stops
+    if (session.id) {
+      const payment = await prisma.payment.findFirst({
+        where: { stripeSessionId: session.id, status: "PENDING" },
+      });
+      if (payment) {
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: "FAILED" },
+        });
+        await auditLog({
+          orgId: payment.orgId,
+          action: "PAYMENT_CARD_EXPIRED",
+          entity: "job",
+          entityId: payment.jobId,
+          meta: { sessionId: session.id },
+        });
+      }
+    }
+    return NextResponse.json({ received: true });
+  }
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const { orgId, jobId, quoteId, receivedById } = session.metadata || {};
+
+    const payerEmail = session.customer_details?.email ?? null;
 
     if (!orgId || !jobId || !quoteId) {
       console.error("Missing metadata in checkout session:", session.id);
@@ -159,6 +185,35 @@ export async function POST(request: NextRequest) {
         signatureUrl,
         acceptedAt: quote.acceptedAt,
       }).catch((err) => console.error("Receipt email failed:", err));
+
+      // Send receipt to actual payer if different from customer email
+      if (payerEmail && payerEmail !== quote.customerEmail) {
+        sendReceipt({
+          receiptToken: receiptTokenResult,
+          orgId,
+          jobId,
+          orgName: org.name,
+          orgLogoUrl: logoUrl,
+          senderEmail: org.senderEmail,
+          receiptsEmail: null,
+          customerEmail: payerEmail,
+          jobNumber: job.jobNumber,
+          lines: quote.lines.map((l) => ({
+            label: l.label,
+            qty: l.qty,
+            totalCents: l.totalCents,
+          })),
+          subtotalCents: quote.subtotalCents,
+          discountCents: quote.discountCents,
+          discountReason: quote.discountReason,
+          taxCents: quote.taxCents,
+          totalCents: quote.totalCents,
+          paymentMethod: "CARD",
+          paidAt: now,
+          signatureUrl,
+          acceptedAt: quote.acceptedAt,
+        }).catch((err) => console.error("Payer receipt failed:", err));
+      }
 
       // Send review request (fire-and-forget, never blocks payment)
       if (quote.customerEmail) {
