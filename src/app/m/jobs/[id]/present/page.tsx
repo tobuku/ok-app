@@ -110,15 +110,15 @@ export default async function PresentQuotePage({
           ) : (
             <h1 className="text-2xl font-bold text-background">{org.name}</h1>
           )}
-          <p className="text-muted-foreground text-sm mt-2">Service Quote</p>
+          <p className="text-muted-foreground text-base mt-2">Service Quote</p>
         </div>
 
         {/* Quote breakdown */}
         <div className="p-6 space-y-4">
           <div className="space-y-2">
             {lines.map((line) => (
-              <div key={line.id} className="flex justify-between text-sm">
-                <span className="text-muted-foreground">
+              <div key={line.id} className="flex justify-between text-base">
+                <span className="text-foreground">
                   {line.label}
                   {line.qty > 1 && ` x${line.qty}`}
                 </span>
@@ -130,12 +130,12 @@ export default async function PresentQuotePage({
           <Separator />
 
           <div className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal</span>
+            <div className="flex justify-between text-base">
+              <span className="text-foreground/80">Subtotal</span>
               <span className="font-mono">{formatCents(quote.subtotalCents)}</span>
             </div>
             {quote.discountCents > 0 && (
-              <div className="flex justify-between text-sm text-red-600 dark:text-red-400">
+              <div className="flex justify-between text-base text-red-600 dark:text-red-400">
                 <span>
                   Discount
                   {quote.discountReason && (
@@ -148,21 +148,21 @@ export default async function PresentQuotePage({
               </div>
             )}
             {quote.taxCents > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Tax</span>
+              <div className="flex justify-between text-base">
+                <span className="text-foreground/80">Tax</span>
                 <span className="font-mono">{formatCents(quote.taxCents)}</span>
               </div>
             )}
             <Separator />
-            <div className="flex justify-between text-lg font-bold pt-2">
+            <div className="flex justify-between text-2xl font-bold pt-2">
               <span>Total</span>
               <span className="font-mono">{formatCents(quote.totalCents)}</span>
             </div>
           </div>
 
           {/* Terms & Conditions */}
-          <div className="text-[10px] leading-tight text-muted-foreground border border-border rounded-md p-3 space-y-1.5 bg-muted/30">
-            <p className="font-semibold text-xs text-foreground uppercase tracking-wide mb-1">Terms & Conditions</p>
+          <div className="text-xs leading-relaxed text-foreground/70 border border-border rounded-md p-3 space-y-1.5 bg-muted/30">
+            <p className="font-semibold text-sm text-foreground uppercase tracking-wide mb-1">Terms & Conditions</p>
             <p>By signing below, you authorize {org.name} to remove the items and/or materials identified in this quote from the specified location.</p>
             <p><strong>All sales are final.</strong> No refunds or chargebacks will be issued once work has commenced.</p>
             <p><strong>Damage disclaimer:</strong> {org.name} will exercise reasonable care during removal. However, we are not liable for pre-existing damage, cosmetic wear to surfaces (walls, floors, doorways, landscaping) incurred during the removal of heavy, oversized, or awkwardly placed items, or for damage to items not included in this quote that are in the removal path.</p>
