@@ -193,6 +193,7 @@ export function AcceptDeclineButtons({
               setPhase("done-accepted");
               setTimeout(() => router.push(`/m/jobs/${jobId}`), 2000);
             }}
+            onCancel={() => setCardUrl(null)}
           />
         ) : (
           <>
@@ -254,7 +255,7 @@ export function AcceptDeclineButtons({
           value={customerEmail}
           onChange={(e) => setCustomerEmail(e.target.value)}
           placeholder="customer@example.com"
-          className={`h-12 text-base ${emailMissing ? "border-amber-400 dark:border-amber-600" : ""}`}
+          className={`h-14 text-lg ${emailMissing ? "border-amber-400 dark:border-amber-600" : ""}`}
         />
         {emailMissing && (
           <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">

@@ -74,14 +74,8 @@ export function PaymentButtons({
           customerPhone={customerPhone}
           jobId={jobId}
           onPaid={() => router.refresh()}
+          onCancel={() => { setCardUrl(null); setLoading(null); }}
         />
-        <Button
-          variant="link"
-          onClick={() => { setCardUrl(null); setLoading(null); }}
-          className="w-full text-sm text-muted-foreground"
-        >
-          Back to payment options
-        </Button>
       </div>
     );
   }
