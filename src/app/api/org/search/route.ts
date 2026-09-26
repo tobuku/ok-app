@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
       id: `customer-${c.id}`,
       label: c.name,
       sub: c.phone || undefined,
-      href: `/app/customers`,
+      href: `/app/customers/${c.id}`,
       icon: "customer",
     });
   }

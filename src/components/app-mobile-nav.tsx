@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { UserNav } from "@/components/user-nav";
+import { MobileSearch } from "@/components/mobile-search";
 import { useState } from "react";
 
 interface AppMobileNavProps {
@@ -49,6 +50,7 @@ export function AppMobileNav({ isAdmin, isDispatcherOrAdmin, userName, userRole,
       <header className="md:hidden flex items-center justify-between h-14 px-4 border-b border-border bg-background">
         <span className="font-semibold text-sm">{orgName || "JunkMint"}</span>
         <div className="flex items-center gap-2">
+          <MobileSearch basePath="/app" />
           <UserNav name={userName} role={userRole} />
           {isDispatcherOrAdmin && (
             <Sheet open={open} onOpenChange={setOpen}>
