@@ -7,8 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { showError } from "@/lib/toast";
-import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
+import type { SignaturePadHandle } from "@/components/signature-pad";
+import dynamic from "next/dynamic";
 import { CreditCard, Banknote, FileCheck, AlertTriangle } from "lucide-react";
+
+const SignaturePad = dynamic(
+  () => import("@/components/signature-pad").then((mod) => mod.SignaturePad),
+  { ssr: false }
+);
 import { PaymentHandoff } from "../payment-handoff";
 
 export function AcceptDeclineButtons({

@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Share2, Printer, FileText, QrCode, MessageSquare, Copy, Check, Mail, Send, CheckCircle2 } from "lucide-react";
 import { showError } from "@/lib/toast";
-import QRCode from "qrcode";
 
 export function InvoiceActions({
   jobId,
@@ -35,11 +34,13 @@ export function InvoiceActions({
 
   useEffect(() => {
     if (showQr && receiptUrl && !qrDataUrl) {
-      QRCode.toDataURL(receiptUrl, {
-        width: 240,
-        margin: 2,
-        color: { dark: "#111827", light: "#ffffff" },
-      }).then(setQrDataUrl);
+      import("qrcode").then((mod) =>
+        mod.default.toDataURL(receiptUrl, {
+          width: 240,
+          margin: 2,
+          color: { dark: "#111827", light: "#ffffff" },
+        }).then(setQrDataUrl)
+      );
     }
   }, [showQr, receiptUrl, qrDataUrl]);
 

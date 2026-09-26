@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { QrCode, CreditCard, Share2, Copy, Check, CheckCircle2, Loader2, XCircle, AlertTriangle } from "lucide-react";
-import QRCode from "qrcode";
 
 export function PaymentHandoff({
   checkoutUrl,
@@ -32,11 +31,13 @@ export function PaymentHandoff({
   onPaidRef.current = onPaid;
 
   useEffect(() => {
-    QRCode.toDataURL(checkoutUrl, {
-      width: 280,
-      margin: 2,
-      color: { dark: "#111827", light: "#ffffff" },
-    }).then(setQrDataUrl);
+    import("qrcode").then((mod) =>
+      mod.default.toDataURL(checkoutUrl, {
+        width: 280,
+        margin: 2,
+        color: { dark: "#111827", light: "#ffffff" },
+      }).then(setQrDataUrl)
+    );
   }, [checkoutUrl]);
 
   // Elapsed time tracker
