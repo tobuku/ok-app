@@ -35,7 +35,7 @@ export async function POST(
   }
 
   const body = await request.json();
-  const { lines, discountCents = 0, discountReason, truckLoads = 1 } = body;
+  const { lines, discountCents = 0, discountReason, truckLoads = 1, notes } = body;
 
   if (!Array.isArray(lines) || lines.length === 0) {
     return NextResponse.json({ error: "lines[] required" }, { status: 400 });
@@ -72,6 +72,7 @@ export async function POST(
         discountReason: discountReason || null,
         taxCents,
         totalCents,
+        notes: notes || null,
       },
     });
 
@@ -85,6 +86,8 @@ export async function POST(
           qty: line.qty ?? 1,
           unitCents: line.unitCents,
           totalCents: (line.qty ?? 1) * line.unitCents,
+          unitLabel: line.unitLabel || null,
+          description: line.description || null,
         },
       });
     }
@@ -144,7 +147,7 @@ export async function PATCH(
   }
 
   const body = await request.json();
-  const { lines, discountCents = 0, discountReason, truckLoads = 1 } = body;
+  const { lines, discountCents = 0, discountReason, truckLoads = 1, notes } = body;
 
   if (!Array.isArray(lines) || lines.length === 0) {
     return NextResponse.json({ error: "lines[] required" }, { status: 400 });
@@ -179,6 +182,7 @@ export async function PATCH(
         discountReason: discountReason || null,
         taxCents,
         totalCents,
+        notes: notes || null,
       },
     });
 
@@ -192,6 +196,8 @@ export async function PATCH(
           qty: line.qty ?? 1,
           unitCents: line.unitCents,
           totalCents: (line.qty ?? 1) * line.unitCents,
+          unitLabel: line.unitLabel || null,
+          description: line.description || null,
         },
       });
     }

@@ -49,6 +49,7 @@ export async function GET(
     discountReason: string | null;
     taxCents: number;
     totalCents: number;
+    notes: string | null;
     createdAt: Date;
   }>("quote", {
     where: { jobId },
@@ -63,7 +64,10 @@ export async function GET(
   const lines = await t.findMany<{
     label: string;
     qty: number;
+    unitCents: number;
     totalCents: number;
+    unitLabel: string | null;
+    description: string | null;
   }>("quoteLine", {
     where: { quoteId: quote.id },
   });
@@ -90,16 +94,28 @@ export async function GET(
     : `<h1 style="margin:0 0 8px;font-size:24px;color:#ffffff;">${orgName}</h1>`;
 
   const lineRows = lines
-    .map(
-      (l) => `<tr>
-        <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#374151;">
-          ${l.label}${l.qty > 1 ? ` x${l.qty}` : ""}
+    .map((l) => {
+      let qtyDisplay = "";
+      if (l.unitLabel && l.unitLabel !== "flat" && l.qty > 0) {
+        const singular = l.unitLabel.replace(/s$/, "");
+        qtyDisplay = `<span style="color:#6b7280;font-size:13px;"> &mdash; ${l.qty} ${l.unitLabel} x ${formatCents(l.unitCents)}/${singular}</span>`;
+      } else if (l.qty > 1) {
+        qtyDisplay = ` x${l.qty}`;
+      }
+
+      const descRow = l.description
+        ? `<tr><td colspan="2" style="padding:0 0 6px;color:#9ca3af;font-size:12px;word-break:break-word;">${l.description}</td></tr>`
+        : "";
+
+      return `<tr>
+        <td style="padding:8px 0;${l.description ? "" : "border-bottom:1px solid #f0f0f0;"}color:#374151;">
+          ${l.label}${qtyDisplay}
         </td>
-        <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:right;color:#111827;font-weight:500;">
+        <td style="padding:8px 0;${l.description ? "" : "border-bottom:1px solid #f0f0f0;"}text-align:right;color:#111827;font-weight:500;white-space:nowrap;">
           ${formatCents(l.totalCents)}
         </td>
-      </tr>`
-    )
+      </tr>${descRow ? `${descRow}` : ""}`;
+    })
     .join("");
 
   const discountRow =
@@ -192,6 +208,11 @@ export async function GET(
           <td style="padding:12px 0 4px;font-size:18px;font-weight:700;text-align:right;color:#111827;border-top:2px solid #e5e7eb;">${formatCents(quote.totalCents)}</td>
         </tr>
       </table>
+
+      ${quote.notes ? `<div style="margin-top:20px;padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;">
+        <p style="margin:0 0 4px;font-weight:700;font-size:11px;color:#92400e;text-transform:uppercase;letter-spacing:0.5px;">Scope of Work / Notes</p>
+        <p style="margin:0;color:#78350f;font-size:13px;line-height:1.5;white-space:pre-line;word-break:break-word;">${quote.notes}</p>
+      </div>` : ""}
 
       <div style="margin-top:20px;padding:12px;background:#f0f9ff;border-radius:8px;text-align:center;">
         <p style="margin:0;color:#1e40af;font-size:13px;">This is an estimate. Final pricing may vary based on actual job conditions.</p>

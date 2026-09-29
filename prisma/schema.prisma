@@ -325,6 +325,7 @@ model Quote {
   taxCents        Int         @default(0)
   totalCents      Int         @default(0)
   customerEmail   String?
+  notes           String?     // free-text scope of work / special instructions
   acceptedAt      DateTime?
   declinedReason  String?
   signatureKey    String?
@@ -351,6 +352,8 @@ model QuoteLine {
   qty         Int     @default(1)
   unitCents   Int
   totalCents  Int
+  unitLabel   String? // display unit: "hours", "lbs", "loads", "each", etc.
+  description String? // optional description for the line item
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   quote        Quote        @relation(fields: [quoteId], references: [id], onDelete: Cascade)

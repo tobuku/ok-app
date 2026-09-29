@@ -83,14 +83,27 @@ export default async function PublicQuotePage({
           {/* Line items */}
           <div className="space-y-2">
             {quote.lines.map((line) => (
-              <div key={line.id} className="flex justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {line.label}
-                  {line.qty > 1 && ` x${line.qty}`}
-                </span>
-                <span className="font-medium font-mono">
-                  {formatCents(line.totalCents)}
-                </span>
+              <div key={line.id}>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {line.label}
+                    {line.unitLabel && line.unitLabel !== "flat" && line.qty > 0 ? (
+                      <span className="text-xs ml-1">
+                        &mdash; {line.qty} {line.unitLabel} x {formatCents(line.unitCents)}/{line.unitLabel.replace(/s$/, "")}
+                      </span>
+                    ) : (
+                      line.qty > 1 && ` x${line.qty}`
+                    )}
+                  </span>
+                  <span className="font-medium font-mono">
+                    {formatCents(line.totalCents)}
+                  </span>
+                </div>
+                {line.description && (
+                  <p className="text-xs text-muted-foreground/70 ml-0 mt-0.5 break-words">
+                    {line.description}
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -135,6 +148,14 @@ export default async function PublicQuotePage({
               <span className="font-mono">{formatCents(quote.totalCents)}</span>
             </div>
           </div>
+
+          {/* Scope of Work / Notes */}
+          {quote.notes && (
+            <div className="border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 rounded-md p-3">
+              <p className="font-semibold text-xs text-amber-900 dark:text-amber-300 uppercase tracking-wide mb-1">Scope of Work / Notes</p>
+              <p className="text-sm text-amber-800 dark:text-amber-400 whitespace-pre-line break-words">{quote.notes}</p>
+            </div>
+          )}
 
           {/* Terms & Conditions */}
           <div className="text-[10px] leading-tight text-muted-foreground border border-border rounded-md p-3 space-y-1.5 bg-muted/30">

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { showError } from "@/lib/toast";
-import { Share2, Printer, FileText } from "lucide-react";
+import { Share2, Printer, FileText, Plus, X } from "lucide-react";
 
 type PriceItem = {
   id: string;
@@ -24,7 +24,11 @@ type QuoteLine = {
   label: string;
   qty: number;
   unitCents: number;
+  unitLabel?: string;
+  description?: string;
 };
+
+const UNIT_OPTIONS = ["hours", "lbs", "loads", "each", "flat", "custom"];
 
 export function QuoteBuilder({
   jobId,
@@ -40,6 +44,7 @@ export function QuoteBuilder({
   const [truckLoads, setTruckLoads] = useState(1);
   const [discountCents, setDiscountCents] = useState(0);
   const [discountReason, setDiscountReason] = useState("");
+  const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ quoteId: string } | null>(null);
   const [emailTo, setEmailTo] = useState("");
@@ -71,13 +76,16 @@ export function QuoteBuilder({
             setTruckLoads(q.truckLoads ?? 1);
             setDiscountCents(q.discountCents ?? 0);
             setDiscountReason(q.discountReason ?? "");
+            setNotes(q.notes ?? "");
             // Restore lines from quote lines
             const restored: QuoteLine[] = (q.lines || []).map(
-              (ql: { priceItemId: string | null; label: string; qty: number; unitCents: number }) => ({
+              (ql: { priceItemId: string | null; label: string; qty: number; unitCents: number; unitLabel?: string | null; description?: string | null }) => ({
                 priceItemId: ql.priceItemId ?? "",
                 label: ql.label,
                 qty: ql.qty,
                 unitCents: ql.unitCents,
+                unitLabel: ql.unitLabel ?? undefined,
+                description: ql.description ?? undefined,
               })
             );
             setLines(restored);
@@ -107,6 +115,9 @@ export function QuoteBuilder({
   const taxCents = Math.round((taxableAmount * taxRateBps) / 10000);
   const totalCents = taxableAmount + taxCents;
 
+  // Custom lines are those without a priceItemId
+  const customLines = lines.filter((l) => !l.priceItemId);
+
   function selectLoadFraction(item: PriceItem) {
     // Replace any existing load fraction
     setLines((prev) => [
@@ -135,6 +146,46 @@ export function QuoteBuilder({
     );
   }
 
+  function addCustomLine() {
+    setLines((prev) => [
+      ...prev,
+      { priceItemId: "", label: "", qty: 1, unitCents: 0 },
+    ]);
+  }
+
+  function updateCustomLine(index: number, updates: Partial<QuoteLine>) {
+    // index is relative to custom lines, find the actual index in lines[]
+    let customIdx = 0;
+    setLines((prev) =>
+      prev.map((l) => {
+        if (!l.priceItemId) {
+          if (customIdx === index) {
+            customIdx++;
+            return { ...l, ...updates };
+          }
+          customIdx++;
+        }
+        return l;
+      })
+    );
+  }
+
+  function removeCustomLine(index: number) {
+    let customIdx = 0;
+    setLines((prev) =>
+      prev.filter((l) => {
+        if (!l.priceItemId) {
+          if (customIdx === index) {
+            customIdx++;
+            return false;
+          }
+          customIdx++;
+        }
+        return true;
+      })
+    );
+  }
+
   async function submitQuote() {
     if (lines.length === 0) return;
     setSubmitting(true);
@@ -145,7 +196,7 @@ export function QuoteBuilder({
       const res = await fetch(`/api/org/jobs/${jobId}/quote`, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lines, truckLoads, discountCents, discountReason }),
+        body: JSON.stringify({ lines, truckLoads, discountCents, discountReason, notes }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -402,6 +453,109 @@ export function QuoteBuilder({
           </div>
         </div>
 
+        {/* Custom Line Items */}
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Custom Line Items</p>
+          <div className="space-y-3">
+            {customLines.map((line, idx) => (
+              <div
+                key={idx}
+                className="border border-dashed border-border rounded-lg p-3 space-y-2 bg-muted/30"
+              >
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="text"
+                    placeholder="Item name (e.g., Labor — Demo Crew)"
+                    value={line.label}
+                    onChange={(e) => updateCustomLine(idx, { label: e.target.value })}
+                    className="flex-1 text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeCustomLine(idx)}
+                    className="w-8 h-8 text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Input
+                  type="text"
+                  placeholder="Description (optional)"
+                  value={line.description ?? ""}
+                  onChange={(e) => updateCustomLine(idx, { description: e.target.value })}
+                  className="text-sm"
+                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    value={line.qty}
+                    onChange={(e) => updateCustomLine(idx, { qty: Math.max(1, Math.round(Number(e.target.value) || 1)) })}
+                    className="w-16 text-sm text-center"
+                    placeholder="Qty"
+                  />
+                  <select
+                    value={line.unitLabel && !UNIT_OPTIONS.slice(0, -1).includes(line.unitLabel) ? "custom" : (line.unitLabel ?? "")}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "custom") {
+                        updateCustomLine(idx, { unitLabel: "" });
+                      } else {
+                        updateCustomLine(idx, { unitLabel: val || undefined });
+                      }
+                    }}
+                    className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+                  >
+                    <option value="">Unit</option>
+                    <option value="hours">hours</option>
+                    <option value="lbs">lbs</option>
+                    <option value="loads">loads</option>
+                    <option value="each">each</option>
+                    <option value="flat">flat</option>
+                    <option value="custom">custom...</option>
+                  </select>
+                  {line.unitLabel !== undefined && !UNIT_OPTIONS.slice(0, -1).includes(line.unitLabel ?? "") && line.unitLabel !== undefined && (
+                    <Input
+                      type="text"
+                      placeholder="Unit name"
+                      value={line.unitLabel ?? ""}
+                      onChange={(e) => updateCustomLine(idx, { unitLabel: e.target.value })}
+                      className="w-20 text-sm"
+                    />
+                  )}
+                  <span className="text-sm text-muted-foreground">x $</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={line.unitCents / 100 || ""}
+                    onChange={(e) => updateCustomLine(idx, { unitCents: Math.round(Number(e.target.value) * 100) })}
+                    className="w-24 text-sm"
+                    placeholder="0.00"
+                  />
+                </div>
+                {line.qty > 0 && line.unitCents > 0 && (
+                  <p className="text-xs text-muted-foreground text-right">
+                    Subtotal: {formatCents(line.qty * line.unitCents)}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addCustomLine}
+            className="mt-2 w-full"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add Custom Line Item
+          </Button>
+        </div>
+
         {/* Discount */}
         <div>
           <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Discount</p>
@@ -425,6 +579,18 @@ export function QuoteBuilder({
               className="flex-1 text-sm"
             />
           </div>
+        </div>
+
+        {/* Notes / Scope of Work */}
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Scope of Work / Notes</p>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Describe the scope, special conditions, payment terms..."
+            rows={3}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
         </div>
 
         {/* Totals */}
