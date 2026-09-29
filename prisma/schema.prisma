@@ -340,6 +340,7 @@ model Quote {
   agencyDept      String?     // "U.S. Coast Guard — Facilities Division"
   pocName         String?     // contracting officer / point of contact name
   pocPhone        String?     // POC phone
+  taxExempt       Boolean     @default(false)
   acceptedAt      DateTime?
   declinedReason  String?
   signatureKey    String?

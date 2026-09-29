@@ -78,6 +78,7 @@ export function QuoteBuilder({
     pocName: "", pocPhone: "", paymentTerms: "", validDays: "",
   });
   const [govExpanded, setGovExpanded] = useState(false);
+  const [taxExempt, setTaxExempt] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ quoteId: string } | null>(null);
   const [emailTo, setEmailTo] = useState("");
@@ -125,6 +126,7 @@ export function QuoteBuilder({
             };
             setGovDetails(gd);
             if (Object.values(gd).some((v) => v !== "")) setGovExpanded(true);
+            if (q.taxExempt) setTaxExempt(true);
             // Restore lines from quote lines
             const restored: QuoteLine[] = (q.lines || []).map(
               (ql: { priceItemId: string | null; label: string; qty: number; unitCents: number; unitLabel?: string | null; description?: string | null; category?: string | null }) => ({
@@ -161,7 +163,7 @@ export function QuoteBuilder({
   const perLoadCents = lines.reduce((s, l) => s + l.qty * l.unitCents, 0);
   const subtotalCents = perLoadCents * truckLoads;
   const taxableAmount = subtotalCents - discountCents;
-  const taxCents = Math.round((taxableAmount * taxRateBps) / 10000);
+  const taxCents = taxExempt ? 0 : Math.round((taxableAmount * taxRateBps) / 10000);
   const totalCents = taxableAmount + taxCents;
 
   // Custom lines are those without a priceItemId
@@ -246,7 +248,7 @@ export function QuoteBuilder({
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          lines, truckLoads, discountCents, discountReason, notes,
+          lines, truckLoads, discountCents, discountReason, notes, taxExempt,
           ...govDetails,
           validDays: govDetails.validDays ? parseInt(govDetails.validDays, 10) : undefined,
         }),
@@ -729,6 +731,19 @@ export function QuoteBuilder({
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
+
+        {/* Tax Exempt Toggle */}
+        {taxRateBps > 0 && (
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={taxExempt}
+              onChange={(e) => setTaxExempt(e.target.checked)}
+              className="h-4 w-4 rounded border-input"
+            />
+            <span className="text-muted-foreground">Tax exempt (government / contractor bid)</span>
+          </label>
+        )}
 
         {/* Totals */}
         {lines.length > 0 && (

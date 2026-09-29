@@ -36,7 +36,7 @@ export async function POST(
 
   const body = await request.json();
   const {
-    lines, discountCents = 0, discountReason, truckLoads = 1, notes,
+    lines, discountCents = 0, discountReason, truckLoads = 1, notes, taxExempt = false,
     validDays, paymentTerms, projectName, projectLocation,
     solicitationNo, rfqNumber, contractNumber, agencyDept, pocName, pocPhone,
   } = body;
@@ -60,7 +60,7 @@ export async function POST(
     select: { taxRateBps: true },
   });
   const taxableAmount = subtotalCents - discountCents;
-  const taxCents = Math.round((taxableAmount * (org?.taxRateBps ?? 0)) / 10000);
+  const taxCents = taxExempt ? 0 : Math.round((taxableAmount * (org?.taxRateBps ?? 0)) / 10000);
   const totalCents = taxableAmount + taxCents;
 
   // Create quote + lines in a transaction
@@ -87,6 +87,7 @@ export async function POST(
         agencyDept: agencyDept || null,
         pocName: pocName || null,
         pocPhone: pocPhone || null,
+        taxExempt: !!taxExempt,
       },
     });
 
@@ -163,7 +164,7 @@ export async function PATCH(
 
   const body = await request.json();
   const {
-    lines, discountCents = 0, discountReason, truckLoads = 1, notes,
+    lines, discountCents = 0, discountReason, truckLoads = 1, notes, taxExempt = false,
     validDays, paymentTerms, projectName, projectLocation,
     solicitationNo, rfqNumber, contractNumber, agencyDept, pocName, pocPhone,
   } = body;
@@ -184,7 +185,7 @@ export async function PATCH(
     select: { taxRateBps: true },
   });
   const taxableAmount = subtotalCents - discountCents;
-  const taxCents = Math.round((taxableAmount * (org?.taxRateBps ?? 0)) / 10000);
+  const taxCents = taxExempt ? 0 : Math.round((taxableAmount * (org?.taxRateBps ?? 0)) / 10000);
   const totalCents = taxableAmount + taxCents;
 
   const quote = await prisma.$transaction(async (tx) => {
@@ -212,6 +213,7 @@ export async function PATCH(
         agencyDept: agencyDept || null,
         pocName: pocName || null,
         pocPhone: pocPhone || null,
+        taxExempt: !!taxExempt,
       },
     });
 
