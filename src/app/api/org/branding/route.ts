@@ -13,7 +13,7 @@ export async function GET() {
 
   const org = await prisma.organization.findUnique({
     where: { id: user.orgId },
-    select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, taxRateBps: true, reviewEnabled: true, googlePlaceId: true },
+    select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, taxRateBps: true, reviewEnabled: true, googlePlaceId: true, phone: true, address: true, licenseNumber: true },
   });
 
   if (!org) {
@@ -60,6 +60,15 @@ export async function PATCH(req: NextRequest) {
   if (body.googlePlaceId !== undefined) {
     data.googlePlaceId = body.googlePlaceId?.trim() || null;
   }
+  if (body.phone !== undefined) {
+    data.phone = body.phone?.trim() || null;
+  }
+  if (body.address !== undefined) {
+    data.address = body.address?.trim() || null;
+  }
+  if (body.licenseNumber !== undefined) {
+    data.licenseNumber = body.licenseNumber?.trim() || null;
+  }
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
@@ -68,7 +77,7 @@ export async function PATCH(req: NextRequest) {
   const updated = await prisma.organization.update({
     where: { id: user.orgId },
     data,
-    select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, taxRateBps: true, reviewEnabled: true, googlePlaceId: true },
+    select: { name: true, logoKey: true, receiptsEmail: true, senderEmail: true, taxRateBps: true, reviewEnabled: true, googlePlaceId: true, phone: true, address: true, licenseNumber: true },
   });
 
   await auditLog({

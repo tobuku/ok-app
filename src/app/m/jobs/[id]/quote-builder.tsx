@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { showError } from "@/lib/toast";
-import { Share2, Printer, FileText, Plus, X } from "lucide-react";
+import { Share2, Printer, FileText, Plus, X, ChevronDown, ChevronRight } from "lucide-react";
 
 type PriceItem = {
   id: string;
@@ -26,9 +26,36 @@ type QuoteLine = {
   unitCents: number;
   unitLabel?: string;
   description?: string;
+  category?: string;
 };
 
-const UNIT_OPTIONS = ["hours", "lbs", "loads", "each", "flat", "custom"];
+type GovDetails = {
+  projectName: string;
+  projectLocation: string;
+  agencyDept: string;
+  solicitationNo: string;
+  rfqNumber: string;
+  contractNumber: string;
+  pocName: string;
+  pocPhone: string;
+  paymentTerms: string;
+  validDays: string;
+};
+
+const CATEGORIES = [
+  "Labor", "Equipment", "Transportation", "Disposal",
+  "Dump/Tipping Fees", "Recycling", "Packing Materials",
+  "Cleaning Supplies", "Furniture Removal", "Electronics Removal",
+  "Document/Paper Removal", "Hazardous/Special Handling",
+  "Supervision", "Administrative", "Mobilization", "Demobilization",
+];
+
+const UNIT_OPTIONS = [
+  "each", "hours", "labor hours", "days",
+  "loads", "truckloads", "cubic yards",
+  "tons", "lbs", "boxes", "pallets",
+  "trips", "lots", "flat",
+];
 
 export function QuoteBuilder({
   jobId,
@@ -45,6 +72,12 @@ export function QuoteBuilder({
   const [discountCents, setDiscountCents] = useState(0);
   const [discountReason, setDiscountReason] = useState("");
   const [notes, setNotes] = useState("");
+  const [govDetails, setGovDetails] = useState<GovDetails>({
+    projectName: "", projectLocation: "", agencyDept: "",
+    solicitationNo: "", rfqNumber: "", contractNumber: "",
+    pocName: "", pocPhone: "", paymentTerms: "", validDays: "",
+  });
+  const [govExpanded, setGovExpanded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ quoteId: string } | null>(null);
   const [emailTo, setEmailTo] = useState("");
@@ -77,15 +110,31 @@ export function QuoteBuilder({
             setDiscountCents(q.discountCents ?? 0);
             setDiscountReason(q.discountReason ?? "");
             setNotes(q.notes ?? "");
+            // Restore gov details
+            const gd: GovDetails = {
+              projectName: q.projectName ?? "",
+              projectLocation: q.projectLocation ?? "",
+              agencyDept: q.agencyDept ?? "",
+              solicitationNo: q.solicitationNo ?? "",
+              rfqNumber: q.rfqNumber ?? "",
+              contractNumber: q.contractNumber ?? "",
+              pocName: q.pocName ?? "",
+              pocPhone: q.pocPhone ?? "",
+              paymentTerms: q.paymentTerms ?? "",
+              validDays: q.validDays != null ? String(q.validDays) : "",
+            };
+            setGovDetails(gd);
+            if (Object.values(gd).some((v) => v !== "")) setGovExpanded(true);
             // Restore lines from quote lines
             const restored: QuoteLine[] = (q.lines || []).map(
-              (ql: { priceItemId: string | null; label: string; qty: number; unitCents: number; unitLabel?: string | null; description?: string | null }) => ({
+              (ql: { priceItemId: string | null; label: string; qty: number; unitCents: number; unitLabel?: string | null; description?: string | null; category?: string | null }) => ({
                 priceItemId: ql.priceItemId ?? "",
                 label: ql.label,
                 qty: ql.qty,
                 unitCents: ql.unitCents,
                 unitLabel: ql.unitLabel ?? undefined,
                 description: ql.description ?? undefined,
+                category: ql.category ?? undefined,
               })
             );
             setLines(restored);
@@ -196,7 +245,11 @@ export function QuoteBuilder({
       const res = await fetch(`/api/org/jobs/${jobId}/quote`, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lines, truckLoads, discountCents, discountReason, notes }),
+        body: JSON.stringify({
+          lines, truckLoads, discountCents, discountReason, notes,
+          ...govDetails,
+          validDays: govDetails.validDays ? parseInt(govDetails.validDays, 10) : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -453,6 +506,83 @@ export function QuoteBuilder({
           </div>
         </div>
 
+        {/* Government / Contract Details (collapsible) */}
+        <div className="border border-border rounded-lg">
+          <button
+            type="button"
+            onClick={() => setGovExpanded(!govExpanded)}
+            className="w-full flex items-center justify-between p-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <span>Government / Contract Details</span>
+            {govExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
+          {govExpanded && (
+            <div className="px-3 pb-3 space-y-3">
+              <div className="grid grid-cols-1 gap-3">
+                <Input
+                  type="text" placeholder="Project Name" value={govDetails.projectName}
+                  onChange={(e) => setGovDetails((g) => ({ ...g, projectName: e.target.value }))}
+                  className="text-sm"
+                />
+                <Input
+                  type="text" placeholder="Project Location" value={govDetails.projectLocation}
+                  onChange={(e) => setGovDetails((g) => ({ ...g, projectLocation: e.target.value }))}
+                  className="text-sm"
+                />
+                <Input
+                  type="text" placeholder="Agency / Department" value={govDetails.agencyDept}
+                  onChange={(e) => setGovDetails((g) => ({ ...g, agencyDept: e.target.value }))}
+                  className="text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  type="text" placeholder="Solicitation #" value={govDetails.solicitationNo}
+                  onChange={(e) => setGovDetails((g) => ({ ...g, solicitationNo: e.target.value }))}
+                  className="text-sm"
+                />
+                <Input
+                  type="text" placeholder="RFQ #" value={govDetails.rfqNumber}
+                  onChange={(e) => setGovDetails((g) => ({ ...g, rfqNumber: e.target.value }))}
+                  className="text-sm"
+                />
+              </div>
+              <Input
+                type="text" placeholder="Contract #" value={govDetails.contractNumber}
+                onChange={(e) => setGovDetails((g) => ({ ...g, contractNumber: e.target.value }))}
+                className="text-sm"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  type="text" placeholder="POC Name" value={govDetails.pocName}
+                  onChange={(e) => setGovDetails((g) => ({ ...g, pocName: e.target.value }))}
+                  className="text-sm"
+                />
+                <Input
+                  type="tel" placeholder="POC Phone" value={govDetails.pocPhone}
+                  onChange={(e) => setGovDetails((g) => ({ ...g, pocPhone: e.target.value }))}
+                  className="text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  type="text" placeholder="Payment Terms (e.g. Net 30)" value={govDetails.paymentTerms}
+                  onChange={(e) => setGovDetails((g) => ({ ...g, paymentTerms: e.target.value }))}
+                  className="text-sm"
+                />
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number" min="1" placeholder="30" value={govDetails.validDays}
+                    onChange={(e) => setGovDetails((g) => ({ ...g, validDays: e.target.value }))}
+                    className="text-sm w-20"
+                  />
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">days valid</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Custom Line Items */}
         <div>
           <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Custom Line Items</p>
@@ -463,6 +593,7 @@ export function QuoteBuilder({
                 className="border border-dashed border-border rounded-lg p-3 space-y-2 bg-muted/30"
               >
                 <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-mono w-8 shrink-0">{String(idx + 1).padStart(3, "0")}</span>
                   <Input
                     type="text"
                     placeholder="Item name (e.g., Labor — Demo Crew)"
@@ -479,6 +610,16 @@ export function QuoteBuilder({
                   >
                     <X className="h-4 w-4" />
                   </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={line.category ?? ""}
+                    onChange={(e) => updateCustomLine(idx, { category: e.target.value || undefined })}
+                    className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+                  >
+                    <option value="">Category</option>
+                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
                 <Input
                   type="text"
@@ -497,7 +638,7 @@ export function QuoteBuilder({
                     placeholder="Qty"
                   />
                   <select
-                    value={line.unitLabel && !UNIT_OPTIONS.slice(0, -1).includes(line.unitLabel) ? "custom" : (line.unitLabel ?? "")}
+                    value={line.unitLabel && !UNIT_OPTIONS.includes(line.unitLabel) ? "custom" : (line.unitLabel ?? "")}
                     onChange={(e) => {
                       const val = e.target.value;
                       if (val === "custom") {
@@ -509,14 +650,10 @@ export function QuoteBuilder({
                     className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground"
                   >
                     <option value="">Unit</option>
-                    <option value="hours">hours</option>
-                    <option value="lbs">lbs</option>
-                    <option value="loads">loads</option>
-                    <option value="each">each</option>
-                    <option value="flat">flat</option>
+                    {UNIT_OPTIONS.map((u) => <option key={u} value={u}>{u}</option>)}
                     <option value="custom">custom...</option>
                   </select>
-                  {line.unitLabel !== undefined && !UNIT_OPTIONS.slice(0, -1).includes(line.unitLabel ?? "") && line.unitLabel !== undefined && (
+                  {line.unitLabel !== undefined && !UNIT_OPTIONS.includes(line.unitLabel ?? "") && (
                     <Input
                       type="text"
                       placeholder="Unit name"

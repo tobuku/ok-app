@@ -23,7 +23,7 @@ export default async function PublicQuotePage({
     include: {
       lines: true,
       job: { select: { jobNumber: true, customer: { select: { name: true } } } },
-      organization: { select: { name: true, logoKey: true } },
+      organization: { select: { name: true, logoKey: true, phone: true, address: true } },
     },
   });
 
@@ -73,6 +73,43 @@ export default async function PublicQuotePage({
             <span>{createdDate}</span>
           </div>
 
+          {quote.projectName && (
+            <div className="text-sm">
+              <span className="text-muted-foreground">Project: </span>
+              <span className="font-medium">{quote.projectName}</span>
+              {quote.projectLocation && (
+                <span className="text-muted-foreground"> — {quote.projectLocation}</span>
+              )}
+            </div>
+          )}
+
+          {(quote.validDays || quote.paymentTerms) && (
+            <div className="text-sm space-y-0.5">
+              {quote.validDays && (() => {
+                const d = new Date(quote.createdAt);
+                d.setDate(d.getDate() + quote.validDays);
+                return (
+                  <p className="text-muted-foreground">
+                    Valid until {d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                  </p>
+                );
+              })()}
+              {quote.paymentTerms && (
+                <p className="text-muted-foreground">Payment Terms: {quote.paymentTerms}</p>
+              )}
+            </div>
+          )}
+
+          {(quote.agencyDept || quote.solicitationNo || quote.rfqNumber || quote.contractNumber || quote.pocName) && (
+            <div className="text-sm bg-muted/50 rounded-md p-3 space-y-0.5">
+              {quote.agencyDept && <p><span className="text-muted-foreground">Agency:</span> {quote.agencyDept}</p>}
+              {quote.solicitationNo && <p><span className="text-muted-foreground">Solicitation #:</span> {quote.solicitationNo}</p>}
+              {quote.rfqNumber && <p><span className="text-muted-foreground">RFQ #:</span> {quote.rfqNumber}</p>}
+              {quote.contractNumber && <p><span className="text-muted-foreground">Contract #:</span> {quote.contractNumber}</p>}
+              {quote.pocName && <p><span className="text-muted-foreground">POC:</span> {quote.pocName}{quote.pocPhone ? `, ${quote.pocPhone}` : ""}</p>}
+            </div>
+          )}
+
           <div>
             <p className="text-sm text-muted-foreground">Prepared for</p>
             <p className="font-medium">{quote.job.customer.name}</p>
@@ -82,11 +119,15 @@ export default async function PublicQuotePage({
 
           {/* Line items */}
           <div className="space-y-2">
-            {quote.lines.map((line) => (
+            {quote.lines.map((line, i) => (
               <div key={line.id}>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">
+                    <span className="text-xs font-mono text-muted-foreground/60 mr-1">{String(i + 1).padStart(3, "0")}</span>
                     {line.label}
+                    {line.category && (
+                      <span className="text-[10px] ml-1 px-1.5 py-0.5 bg-muted rounded text-muted-foreground">{line.category}</span>
+                    )}
                     {line.unitLabel && line.unitLabel !== "flat" && line.qty > 0 ? (
                       <span className="text-xs ml-1">
                         &mdash; {line.qty} {line.unitLabel} x {formatCents(line.unitCents)}/{line.unitLabel.replace(/s$/, "")}
@@ -175,8 +216,11 @@ export default async function PublicQuotePage({
           </div>
 
           <p className="text-center text-xs text-muted-foreground">
-            Questions? Contact {org.name} directly.
+            Questions? Contact {org.name}{org.phone ? ` at ${org.phone}` : ""} directly.
           </p>
+          {org.address && (
+            <p className="text-center text-xs text-muted-foreground">{org.address}</p>
+          )}
         </div>
       </div>
     </div>

@@ -55,6 +55,10 @@ model Organization {
 
   googlePlaceId  String?
   reviewEnabled  Boolean  @default(false)
+
+  phone          String?   // business phone
+  address        String?   // mailing address
+  licenseNumber  String?   // business license / registration
 }
 
 model Plan {
@@ -326,6 +330,16 @@ model Quote {
   totalCents      Int         @default(0)
   customerEmail   String?
   notes           String?     // free-text scope of work / special instructions
+  validDays       Int?        // quote validity in days (30, 60, 90)
+  paymentTerms    String?     // "Net 30", "Due upon completion"
+  projectName     String?     // "Office Cleanout"
+  projectLocation String?    // "USCG Base Honolulu, Bldg 4"
+  solicitationNo  String?     // solicitation number
+  rfqNumber       String?     // RFQ number
+  contractNumber  String?     // contract number
+  agencyDept      String?     // "U.S. Coast Guard — Facilities Division"
+  pocName         String?     // contracting officer / point of contact name
+  pocPhone        String?     // POC phone
   acceptedAt      DateTime?
   declinedReason  String?
   signatureKey    String?
@@ -354,6 +368,7 @@ model QuoteLine {
   totalCents  Int
   unitLabel   String? // display unit: "hours", "lbs", "loads", "each", etc.
   description String? // optional description for the line item
+  category    String? // "Labor", "Transportation", "Disposal", etc.
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   quote        Quote        @relation(fields: [quoteId], references: [id], onDelete: Cascade)

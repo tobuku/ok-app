@@ -50,6 +50,16 @@ export async function GET(
     taxCents: number;
     totalCents: number;
     notes: string | null;
+    validDays: number | null;
+    paymentTerms: string | null;
+    projectName: string | null;
+    projectLocation: string | null;
+    solicitationNo: string | null;
+    rfqNumber: string | null;
+    contractNumber: string | null;
+    agencyDept: string | null;
+    pocName: string | null;
+    pocPhone: string | null;
     createdAt: Date;
   }>("quote", {
     where: { jobId },
@@ -68,13 +78,14 @@ export async function GET(
     totalCents: number;
     unitLabel: string | null;
     description: string | null;
+    category: string | null;
   }>("quoteLine", {
     where: { quoteId: quote.id },
   });
 
   const org = await prisma.organization.findUnique({
     where: { id: user.orgId },
-    select: { name: true, logoKey: true, receiptsEmail: true },
+    select: { name: true, logoKey: true, receiptsEmail: true, phone: true, address: true, licenseNumber: true },
   });
 
   let logoUrl: string | null = null;
@@ -83,40 +94,68 @@ export async function GET(
   }
 
   const orgName = org?.name ?? "Service Provider";
+  const orgPhone = org?.phone ?? "";
+  const orgAddress = org?.address ?? "";
+  const orgLicense = org?.licenseNumber ?? "";
+
   const createdDate = new Date(quote.createdAt).toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
   });
 
+  // Compute validity date
+  let validUntil = "";
+  if (quote.validDays) {
+    const d = new Date(quote.createdAt);
+    d.setDate(d.getDate() + quote.validDays);
+    validUntil = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  }
+
   const logoHtml = logoUrl
     ? `<img src="${logoUrl}" alt="${orgName}" style="max-height:60px;margin:0 auto 12px;" />`
     : `<h1 style="margin:0 0 8px;font-size:24px;color:#ffffff;">${orgName}</h1>`;
 
+  const orgSubInfo = [orgAddress, orgPhone].filter(Boolean).join(" &bull; ");
+
+  // Determine if any line has a category (govQuote mode for table headers)
+  const hasCategories = lines.some((l) => l.category);
+
   const lineRows = lines
-    .map((l) => {
+    .map((l, i) => {
+      const num = String(i + 1).padStart(3, "0");
       let qtyDisplay = "";
       if (l.unitLabel && l.unitLabel !== "flat" && l.qty > 0) {
         const singular = l.unitLabel.replace(/s$/, "");
-        qtyDisplay = `<span style="color:#6b7280;font-size:13px;"> &mdash; ${l.qty} ${l.unitLabel} x ${formatCents(l.unitCents)}/${singular}</span>`;
+        qtyDisplay = `${l.qty} ${l.unitLabel} x ${formatCents(l.unitCents)}/${singular}`;
       } else if (l.qty > 1) {
-        qtyDisplay = ` x${l.qty}`;
+        qtyDisplay = `${l.qty} x ${formatCents(l.unitCents)}`;
       }
 
       const descRow = l.description
-        ? `<tr><td colspan="2" style="padding:0 0 6px;color:#9ca3af;font-size:12px;word-break:break-word;">${l.description}</td></tr>`
+        ? `<tr><td colspan="${hasCategories ? 5 : 4}" style="padding:0 0 6px 24px;color:#9ca3af;font-size:12px;word-break:break-word;">${l.description}</td></tr>`
         : "";
 
+      const bb = l.description ? "" : "border-bottom:1px solid #f0f0f0;";
+      const catCell = hasCategories ? `<td style="padding:8px 4px;${bb}color:#6b7280;font-size:12px;white-space:nowrap;">${l.category ?? ""}</td>` : "";
+
       return `<tr>
-        <td style="padding:8px 0;${l.description ? "" : "border-bottom:1px solid #f0f0f0;"}color:#374151;">
-          ${l.label}${qtyDisplay}
-        </td>
-        <td style="padding:8px 0;${l.description ? "" : "border-bottom:1px solid #f0f0f0;"}text-align:right;color:#111827;font-weight:500;white-space:nowrap;">
-          ${formatCents(l.totalCents)}
-        </td>
-      </tr>${descRow ? `${descRow}` : ""}`;
+        <td style="padding:8px 4px;${bb}color:#9ca3af;font-size:12px;font-family:monospace;">${num}</td>
+        ${catCell}
+        <td style="padding:8px 4px;${bb}color:#374151;">${l.label}</td>
+        <td style="padding:8px 4px;${bb}color:#6b7280;font-size:12px;white-space:nowrap;">${qtyDisplay}</td>
+        <td style="padding:8px 4px;${bb}text-align:right;color:#111827;font-weight:500;white-space:nowrap;">${formatCents(l.totalCents)}</td>
+      </tr>${descRow}`;
     })
     .join("");
+
+  const tableHeader = `<tr style="border-bottom:2px solid #e5e7eb;">
+    <th style="padding:6px 4px;text-align:left;color:#6b7280;font-size:11px;text-transform:uppercase;font-weight:600;">#</th>
+    ${hasCategories ? `<th style="padding:6px 4px;text-align:left;color:#6b7280;font-size:11px;text-transform:uppercase;font-weight:600;">Category</th>` : ""}
+    <th style="padding:6px 4px;text-align:left;color:#6b7280;font-size:11px;text-transform:uppercase;font-weight:600;">Description</th>
+    <th style="padding:6px 4px;text-align:left;color:#6b7280;font-size:11px;text-transform:uppercase;font-weight:600;">Qty / Unit</th>
+    <th style="padding:6px 4px;text-align:right;color:#6b7280;font-size:11px;text-transform:uppercase;font-weight:600;">Amount</th>
+  </tr>`;
 
   const discountRow =
     quote.discountCents > 0
@@ -146,9 +185,38 @@ export async function GET(
     job.address ? `<p style="margin:2px 0 0;color:#6b7280;font-size:13px;">${job.address.line1}, ${job.address.city}, ${job.address.state} ${job.address.zip}</p>` : "",
   ].join("\n");
 
-  const contactInfo = org?.receiptsEmail
-    ? `<p style="text-align:center;color:#6b7280;font-size:12px;margin-top:8px;">Contact: ${org.receiptsEmail}</p>`
-    : "";
+  // Build info block (two column: left = quote ref, right = dates/terms)
+  const infoLeft = [
+    `<p style="margin:0;color:#374151;font-size:13px;"><strong>Quote #</strong> OPK-${job.jobNumber}</p>`,
+    quote.projectName ? `<p style="margin:2px 0 0;color:#374151;font-size:13px;"><strong>Project:</strong> ${quote.projectName}</p>` : "",
+    quote.projectLocation ? `<p style="margin:2px 0 0;color:#374151;font-size:13px;"><strong>Location:</strong> ${quote.projectLocation}</p>` : "",
+  ].filter(Boolean).join("\n");
+
+  const infoRight = [
+    `<p style="margin:0;color:#374151;font-size:13px;"><strong>Date:</strong> ${createdDate}</p>`,
+    validUntil ? `<p style="margin:2px 0 0;color:#374151;font-size:13px;"><strong>Valid Until:</strong> ${validUntil}</p>` : "",
+    quote.paymentTerms ? `<p style="margin:2px 0 0;color:#374151;font-size:13px;"><strong>Payment Terms:</strong> ${quote.paymentTerms}</p>` : "",
+  ].filter(Boolean).join("\n");
+
+  // Contract details block (only if any gov fields set)
+  const hasGovFields = quote.agencyDept || quote.solicitationNo || quote.rfqNumber || quote.contractNumber || quote.pocName;
+  const contractBlock = hasGovFields ? `
+    <div style="margin-bottom:16px;padding:12px;background:#f3f4f6;border-radius:8px;font-size:13px;color:#374151;">
+      <p style="margin:0 0 6px;font-weight:700;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Contract Details</p>
+      ${quote.agencyDept ? `<p style="margin:0 0 2px;"><strong>Agency:</strong> ${quote.agencyDept}</p>` : ""}
+      ${quote.solicitationNo ? `<p style="margin:0 0 2px;"><strong>Solicitation #:</strong> ${quote.solicitationNo}</p>` : ""}
+      ${quote.rfqNumber ? `<p style="margin:0 0 2px;"><strong>RFQ #:</strong> ${quote.rfqNumber}</p>` : ""}
+      ${quote.contractNumber ? `<p style="margin:0 0 2px;"><strong>Contract #:</strong> ${quote.contractNumber}</p>` : ""}
+      ${quote.pocName ? `<p style="margin:0 0 2px;"><strong>POC:</strong> ${quote.pocName}${quote.pocPhone ? `, ${quote.pocPhone}` : ""}</p>` : ""}
+    </div>` : "";
+
+  const footerParts = [
+    orgLicense ? `License #: ${orgLicense}` : "",
+    orgName,
+    orgAddress,
+    orgPhone,
+    org?.receiptsEmail || "",
+  ].filter(Boolean);
 
   const html = `<!DOCTYPE html>
 <html>
@@ -159,7 +227,6 @@ export async function GET(
   <style>
     @page {
       margin: 0.5in;
-      /* Remove browser headers/footers (URL, date, page number) */
       @top-left { content: none; }
       @top-center { content: none; }
       @top-right { content: none; }
@@ -174,18 +241,21 @@ export async function GET(
   </style>
 </head>
 <body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <div style="max-width:480px;margin:0 auto;padding:24px;">
+  <div style="max-width:600px;margin:0 auto;padding:24px;">
     <div style="background:#111827;border-radius:12px 12px 0 0;padding:32px 24px;text-align:center;">
       ${logoHtml}
-      <p style="margin:0;color:#9ca3af;font-size:14px;">Estimate</p>
+      ${orgSubInfo ? `<p style="margin:4px 0 0;color:#9ca3af;font-size:12px;">${orgSubInfo}</p>` : ""}
+      <p style="margin:8px 0 0;color:#9ca3af;font-size:14px;">Estimate</p>
     </div>
     <div style="background:#ffffff;border-radius:0 0 12px 12px;padding:24px;border:1px solid #e5e7eb;border-top:none;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
-        <div>
-          <p style="color:#6b7280;font-size:13px;margin:0;">Job #${job.jobNumber}</p>
-          <p style="color:#6b7280;font-size:13px;margin:2px 0 0;">${createdDate}</p>
-        </div>
+
+      <!-- Info block -->
+      <div style="display:flex;justify-content:space-between;margin-bottom:16px;gap:16px;">
+        <div style="flex:1;">${infoLeft}</div>
+        <div style="flex:1;text-align:right;">${infoRight}</div>
       </div>
+
+      ${contractBlock}
 
       <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #e5e7eb;">
         <p style="color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 4px;">Prepared for</p>
@@ -194,6 +264,7 @@ export async function GET(
 
       ${loadsNote}
       <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        ${tableHeader}
         ${lineRows}
       </table>
       <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:12px;">
@@ -218,7 +289,8 @@ export async function GET(
         <p style="margin:0;color:#1e40af;font-size:13px;">This is an estimate. Final pricing may vary based on actual job conditions.</p>
       </div>
     </div>
-    <div style="max-width:480px;margin:12px auto 0;padding:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;font-size:10px;line-height:1.4;color:#6b7280;">
+
+    <div style="max-width:600px;margin:12px auto 0;padding:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;font-size:10px;line-height:1.4;color:#6b7280;">
       <p style="margin:0 0 6px;font-weight:700;font-size:11px;color:#374151;text-transform:uppercase;letter-spacing:0.5px;">Terms &amp; Conditions</p>
       <p style="margin:0 0 4px;">By accepting this estimate, you authorize ${orgName} to remove the items and/or materials identified above from the specified location.</p>
       <p style="margin:0 0 4px;"><strong>All sales are final.</strong> No refunds or chargebacks will be issued once work has commenced.</p>
@@ -226,10 +298,10 @@ export async function GET(
       <p style="margin:0 0 4px;"><strong>Hazardous materials:</strong> This estimate does not cover hazardous, biohazard, or regulated materials unless explicitly listed.</p>
       <p style="margin:0 0 4px;"><strong>Abandoned items:</strong> All removed items become the property of ${orgName} for disposal, recycling, or resale.</p>
     </div>
-    <p style="text-align:center;color:#9ca3af;font-size:12px;margin-top:16px;">
-      Thank you for considering ${orgName}.
-    </p>
-    ${contactInfo}
+
+    <div style="text-align:center;margin-top:16px;font-size:12px;color:#6b7280;line-height:1.6;">
+      <p style="margin:0;">${footerParts.join(" &bull; ")}</p>
+    </div>
   </div>
 </body>
 </html>`;

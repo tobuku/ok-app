@@ -16,6 +16,9 @@ export function BrandingForm({
   initialTaxRateBps,
   initialReviewEnabled,
   initialGooglePlaceId,
+  initialPhone,
+  initialAddress,
+  initialLicenseNumber,
 }: {
   orgName: string;
   initialLogoUrl: string | null;
@@ -24,6 +27,9 @@ export function BrandingForm({
   initialTaxRateBps: number;
   initialReviewEnabled: boolean;
   initialGooglePlaceId: string;
+  initialPhone: string;
+  initialAddress: string;
+  initialLicenseNumber: string;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -35,6 +41,9 @@ export function BrandingForm({
   );
   const [reviewEnabled, setReviewEnabled] = useState(initialReviewEnabled);
   const [googlePlaceId, setGooglePlaceId] = useState(initialGooglePlaceId);
+  const [phone, setPhone] = useState(initialPhone);
+  const [address, setAddress] = useState(initialAddress);
+  const [licenseNumber, setLicenseNumber] = useState(initialLicenseNumber);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -75,6 +84,9 @@ export function BrandingForm({
           taxRateBps: bps,
           reviewEnabled,
           googlePlaceId: googlePlaceId.trim() || null,
+          phone: phone.trim() || null,
+          address: address.trim() || null,
+          licenseNumber: licenseNumber.trim() || null,
         }),
       });
       if (!res.ok) {
@@ -138,6 +150,53 @@ export function BrandingForm({
           >
             {uploading ? "Uploading..." : logoUrl ? "Replace Logo" : "Upload Logo"}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Business Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">Business Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Shown on professional estimates and quotes.
+          </p>
+          <div>
+            <Label htmlFor="biz-phone">Phone</Label>
+            <Input
+              id="biz-phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(808) 536-6075"
+            />
+          </div>
+          <div>
+            <Label htmlFor="biz-address">Address</Label>
+            <Input
+              id="biz-address"
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="1234 Main St, Honolulu, HI 96813"
+            />
+          </div>
+          <div>
+            <Label htmlFor="biz-license">License Number</Label>
+            <Input
+              id="biz-license"
+              type="text"
+              value={licenseNumber}
+              onChange={(e) => setLicenseNumber(e.target.value)}
+              placeholder="CT-12345"
+            />
+          </div>
+          <div className="pt-2">
+            <Button onClick={saveSettings} disabled={saving}>
+              {saving ? "Saving..." : "Save Settings"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

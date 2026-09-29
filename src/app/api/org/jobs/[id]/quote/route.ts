@@ -35,7 +35,11 @@ export async function POST(
   }
 
   const body = await request.json();
-  const { lines, discountCents = 0, discountReason, truckLoads = 1, notes } = body;
+  const {
+    lines, discountCents = 0, discountReason, truckLoads = 1, notes,
+    validDays, paymentTerms, projectName, projectLocation,
+    solicitationNo, rfqNumber, contractNumber, agencyDept, pocName, pocPhone,
+  } = body;
 
   if (!Array.isArray(lines) || lines.length === 0) {
     return NextResponse.json({ error: "lines[] required" }, { status: 400 });
@@ -73,6 +77,16 @@ export async function POST(
         taxCents,
         totalCents,
         notes: notes || null,
+        validDays: validDays != null ? parseInt(validDays, 10) || null : null,
+        paymentTerms: paymentTerms || null,
+        projectName: projectName || null,
+        projectLocation: projectLocation || null,
+        solicitationNo: solicitationNo || null,
+        rfqNumber: rfqNumber || null,
+        contractNumber: contractNumber || null,
+        agencyDept: agencyDept || null,
+        pocName: pocName || null,
+        pocPhone: pocPhone || null,
       },
     });
 
@@ -88,6 +102,7 @@ export async function POST(
           totalCents: (line.qty ?? 1) * line.unitCents,
           unitLabel: line.unitLabel || null,
           description: line.description || null,
+          category: line.category || null,
         },
       });
     }
@@ -147,7 +162,11 @@ export async function PATCH(
   }
 
   const body = await request.json();
-  const { lines, discountCents = 0, discountReason, truckLoads = 1, notes } = body;
+  const {
+    lines, discountCents = 0, discountReason, truckLoads = 1, notes,
+    validDays, paymentTerms, projectName, projectLocation,
+    solicitationNo, rfqNumber, contractNumber, agencyDept, pocName, pocPhone,
+  } = body;
 
   if (!Array.isArray(lines) || lines.length === 0) {
     return NextResponse.json({ error: "lines[] required" }, { status: 400 });
@@ -183,6 +202,16 @@ export async function PATCH(
         taxCents,
         totalCents,
         notes: notes || null,
+        validDays: validDays != null ? parseInt(validDays, 10) || null : null,
+        paymentTerms: paymentTerms || null,
+        projectName: projectName || null,
+        projectLocation: projectLocation || null,
+        solicitationNo: solicitationNo || null,
+        rfqNumber: rfqNumber || null,
+        contractNumber: contractNumber || null,
+        agencyDept: agencyDept || null,
+        pocName: pocName || null,
+        pocPhone: pocPhone || null,
       },
     });
 
@@ -198,6 +227,7 @@ export async function PATCH(
           totalCents: (line.qty ?? 1) * line.unitCents,
           unitLabel: line.unitLabel || null,
           description: line.description || null,
+          category: line.category || null,
         },
       });
     }

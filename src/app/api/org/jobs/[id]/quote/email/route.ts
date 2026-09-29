@@ -40,6 +40,16 @@ export async function POST(
     totalCents: number;
     truckLoads: number;
     notes: string | null;
+    validDays: number | null;
+    paymentTerms: string | null;
+    projectName: string | null;
+    projectLocation: string | null;
+    solicitationNo: string | null;
+    rfqNumber: string | null;
+    contractNumber: string | null;
+    agencyDept: string | null;
+    pocName: string | null;
+    pocPhone: string | null;
     createdAt: Date;
   }>("quote", {
     where: { jobId },
@@ -75,6 +85,9 @@ export async function POST(
       name: true,
       senderEmail: true,
       receiptsEmail: true,
+      phone: true,
+      address: true,
+      licenseNumber: true,
     },
   });
 
@@ -98,11 +111,15 @@ export async function POST(
     totalCents: number;
     unitLabel: string | null;
     description: string | null;
+    category: string | null;
   }>("quoteLine", {
     where: { quoteId: quote.id },
   });
 
   const orgName = org?.name ?? "Service Provider";
+  const orgPhone = org?.phone ?? "";
+  const orgAddress = org?.address ?? "";
+  const orgLicense = org?.licenseNumber ?? "";
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const quoteUrl = `${appUrl}/quote/${viewToken}`;
 
@@ -112,6 +129,15 @@ export async function POST(
     year: "numeric",
   });
 
+  let validUntil = "";
+  if (quote.validDays) {
+    const d = new Date(quote.createdAt);
+    d.setDate(d.getDate() + quote.validDays);
+    validUntil = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  }
+
+  const orgSubInfo = [orgAddress, orgPhone].filter(Boolean).join(" &bull; ");
+
   // Build customer info section
   const customerName = job?.customer?.name ?? "";
   const customerPhone = job?.customer?.phone ?? "";
@@ -119,26 +145,55 @@ export async function POST(
     ? `${job.address.line1}, ${job.address.city}, ${job.address.state} ${job.address.zip}`
     : "";
 
-  // Build email HTML — full itemized invoice
+  // Info block
+  const infoItems = [
+    `<p style="margin:0;color:#374151;font-size:13px;"><strong>Quote #</strong> OPK-${job?.jobNumber ?? ""}</p>`,
+    `<p style="margin:2px 0 0;color:#374151;font-size:13px;"><strong>Date:</strong> ${createdDate}</p>`,
+    quote.projectName ? `<p style="margin:2px 0 0;color:#374151;font-size:13px;"><strong>Project:</strong> ${quote.projectName}</p>` : "",
+    quote.projectLocation ? `<p style="margin:2px 0 0;color:#374151;font-size:13px;"><strong>Location:</strong> ${quote.projectLocation}</p>` : "",
+    validUntil ? `<p style="margin:2px 0 0;color:#374151;font-size:13px;"><strong>Valid Until:</strong> ${validUntil}</p>` : "",
+    quote.paymentTerms ? `<p style="margin:2px 0 0;color:#374151;font-size:13px;"><strong>Payment Terms:</strong> ${quote.paymentTerms}</p>` : "",
+  ].filter(Boolean).join("\n");
+
+  // Contract details
+  const hasGovFields = quote.agencyDept || quote.solicitationNo || quote.rfqNumber || quote.contractNumber || quote.pocName;
+  const contractBlock = hasGovFields ? `
+    <div style="margin-bottom:12px;padding:10px;background:#f3f4f6;border-radius:6px;font-size:13px;color:#374151;">
+      ${quote.agencyDept ? `<p style="margin:0 0 2px;"><strong>Agency:</strong> ${quote.agencyDept}</p>` : ""}
+      ${quote.solicitationNo ? `<p style="margin:0 0 2px;"><strong>Solicitation #:</strong> ${quote.solicitationNo}</p>` : ""}
+      ${quote.rfqNumber ? `<p style="margin:0 0 2px;"><strong>RFQ #:</strong> ${quote.rfqNumber}</p>` : ""}
+      ${quote.contractNumber ? `<p style="margin:0 0 2px;"><strong>Contract #:</strong> ${quote.contractNumber}</p>` : ""}
+      ${quote.pocName ? `<p style="margin:0;"><strong>POC:</strong> ${quote.pocName}${quote.pocPhone ? `, ${quote.pocPhone}` : ""}</p>` : ""}
+    </div>` : "";
+
+  // Build email HTML — mobile-friendly stacked rows
   const lineRows = lines
-    .map((l) => {
+    .map((l, i) => {
+      const num = String(i + 1).padStart(3, "0");
       let qtyDisplay = "";
       if (l.unitLabel && l.unitLabel !== "flat" && l.qty > 0) {
         const singular = l.unitLabel.replace(/s$/, "");
-        qtyDisplay = `<span style="color:#6b7280;font-size:12px;"> &mdash; ${l.qty} ${l.unitLabel} x ${formatCents(l.unitCents)}/${singular}</span>`;
+        qtyDisplay = ` &mdash; ${l.qty} ${l.unitLabel} x ${formatCents(l.unitCents)}/${singular}`;
       } else if (l.qty > 1) {
         qtyDisplay = ` x${l.qty}`;
       }
+
+      const categoryTag = l.category
+        ? `<span style="color:#6b7280;font-size:11px;background:#f3f4f6;padding:1px 6px;border-radius:4px;margin-left:6px;">${l.category}</span>`
+        : "";
 
       const descRow = l.description
         ? `<tr><td colspan="2" style="padding:0 0 6px;color:#9ca3af;font-size:12px;word-break:break-word;">${l.description}</td></tr>`
         : "";
 
+      const bb = l.description ? "" : "border-bottom:1px solid #f0f0f0;";
+
       return `<tr>
-        <td style="padding:6px 0;${l.description ? "" : "border-bottom:1px solid #f0f0f0;"}color:#374151;font-size:14px;">
-          ${l.label}${qtyDisplay}
+        <td style="padding:6px 0;${bb}color:#374151;font-size:14px;">
+          <span style="color:#9ca3af;font-size:12px;font-family:monospace;">${num}</span> ${l.label}${categoryTag}<br/>
+          <span style="color:#6b7280;font-size:12px;">${qtyDisplay}</span>
         </td>
-        <td style="padding:6px 0;${l.description ? "" : "border-bottom:1px solid #f0f0f0;"}text-align:right;color:#111827;font-weight:500;font-size:14px;white-space:nowrap;">
+        <td style="padding:6px 0;${bb}text-align:right;color:#111827;font-weight:500;font-size:14px;white-space:nowrap;vertical-align:top;">
           ${formatCents(l.totalCents)}
         </td>
       </tr>${descRow}`;
@@ -170,9 +225,13 @@ export async function POST(
       </div>`
     : "";
 
-  const contactLine = org?.receiptsEmail
-    ? `<p style="text-align:center;color:#6b7280;font-size:12px;margin-top:8px;">Contact: ${org.receiptsEmail}</p>`
-    : "";
+  const footerParts = [
+    orgLicense ? `License #: ${orgLicense}` : "",
+    orgName,
+    orgAddress,
+    orgPhone,
+    org?.receiptsEmail || "",
+  ].filter(Boolean);
 
   const html = `<!DOCTYPE html>
 <html>
@@ -181,15 +240,14 @@ export async function POST(
   <div style="max-width:480px;margin:0 auto;padding:24px;">
     <div style="background:#111827;border-radius:12px 12px 0 0;padding:32px 24px;text-align:center;">
       <h1 style="margin:0 0 8px;font-size:24px;color:#ffffff;">${orgName}</h1>
-      <p style="margin:0;color:#9ca3af;font-size:14px;">Estimate</p>
+      ${orgSubInfo ? `<p style="margin:0;color:#9ca3af;font-size:12px;">${orgSubInfo}</p>` : ""}
+      <p style="margin:8px 0 0;color:#9ca3af;font-size:14px;">Estimate</p>
     </div>
     <div style="background:#ffffff;border-radius:0 0 12px 12px;padding:24px;border:1px solid #e5e7eb;border-top:none;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
-        <div>
-          <p style="color:#6b7280;font-size:13px;margin:0;">Job #${job?.jobNumber ?? ""}</p>
-          <p style="color:#6b7280;font-size:13px;margin:2px 0 0;">${createdDate}</p>
-        </div>
-      </div>
+
+      <div style="margin-bottom:16px;">${infoItems}</div>
+
+      ${contractBlock}
 
       ${customerName ? `<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #e5e7eb;">
         <p style="color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 4px;">Prepared for</p>
@@ -232,10 +290,9 @@ export async function POST(
         <p style="margin:0;"><strong>Abandoned items:</strong> All removed items become property of ${orgName}.</p>
       </div>
     </div>
-    <p style="text-align:center;color:#9ca3af;font-size:12px;margin-top:16px;">
-      Thank you for considering ${orgName}.
-    </p>
-    ${contactLine}
+    <div style="text-align:center;margin-top:16px;font-size:12px;color:#6b7280;line-height:1.6;">
+      <p style="margin:0;">${footerParts.join(" &bull; ")}</p>
+    </div>
   </div>
 </body>
 </html>`;
